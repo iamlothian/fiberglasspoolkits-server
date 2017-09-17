@@ -1,25 +1,25 @@
 /* app/server.ts */
 
-// Import everything from express and assign it to the express variable
+import "reflect-metadata";
 import * as express from 'express';
 import * as bodyParser from 'body-parser';
 import * as Injector from 'typescript-injector-lite';
 
 // Import WelcomeController from controllers entry point
 import { Router } from 'express';
-import { kitController } from './controllers';
+import { KitController } from './controllers';
 
 Injector.importValue('Router', Router());
 
 @Injector.service()
-class App {
+export class App {
 
     // Create a new express application instance
     app: express.Application = express();
     // The port the express app will listen on
     port: string = process.env.PORT || "3000";
 
-    constructor(@Injector.inject() private kitController:kitController){
+    constructor(@Injector.inject() public kitController:KitController){
 
         // configure app to use bodyParser()
         // this will let us get the data from a POST
@@ -39,6 +39,7 @@ class App {
 
 }
 
-//new App();
+// Bootstrap App
+Injector.instantiate("App");
 
 

@@ -6,8 +6,7 @@ import * as Injector from 'typescript-injector-lite';
 
 export class controller {
 
-    constructor(protected router: Router){
-        this.router = router;
+    constructor(public router: Router){
         console.log(router.name);
 
         // The / here corresponds to the route that the WelcomeController
@@ -34,11 +33,10 @@ export class controller {
 
 }
 @Injector.service()
-export class kitController extends controller {
+export class KitController extends controller {
 
-    constructor(@Injector.inject('Router') protected router: Router){
+    constructor(@Injector.inject("Router") public router: Router){
         super(router);
-        console.log(router.name);
     }
 
 }

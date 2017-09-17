@@ -9,7 +9,7 @@
     "body-parser": "^1.18.1",
     "express": "^4.15.4",
     "reflect-metadata": "^0.1.10",
-    "typescript-injector-lite": "^0.1.6"
+    "typescript-injector-lite": "^0.1.7"
   },
   "devDependencies": {
     "nodemon": "^1.12.1",
