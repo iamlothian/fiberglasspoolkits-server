@@ -1,2 +1,2 @@
 /* app/controllers/index.ts */
-export * from './welcomeController';
+export * from './kitsController';

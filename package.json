@@ -5,16 +5,20 @@
   "types": "lib/index",
   "main": "lib/index",
   "dependencies": {
-    "express": "^4.15.4"
+    "@types/node": "^8.0.28",
+    "body-parser": "^1.18.1",
+    "express": "^4.15.4",
+    "reflect-metadata": "^0.1.10",
+    "typescript-injector-lite": "^0.1.6"
   },
   "devDependencies": {
-    "typescript": "^2.5.2",
-    "nodemon": "^1.11.0",
-    "ts-node": "^3.3.0"
+    "nodemon": "^1.12.1",
+    "ts-node": "^3.3.0",
+    "typescript": "^2.5.2"
   },
   "scripts": {
-    "start": "npm run build:live",
-    "build:live": "nodemon --exec ts-node ./src/index.ts"
+    "start": "node ./dist/index.ts",
+    "build": "tsc -w"
   },
   "keywords": [],
   "author": "",
