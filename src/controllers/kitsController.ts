@@ -1,42 +1,45 @@
 /* app/controllers/welcomeController.ts */
 
-// Import only what we need from express
-import { Router, Request, Response } from 'express';
 import * as Injector from 'typescript-injector-lite';
+import {ControllerBase, Controller} from '../lib'
+import { Router, Request, Response, Application } from 'express';
 
-export class controller {
 
-    constructor(public router: Router){
-        console.log(router.name);
+@Controller()
+export class KitController extends ControllerBase {
 
-        // The / here corresponds to the route that the WelcomeController
-        // is mounted on in the server.ts file.
-        // In this case it's /welcome
-        router.get('/', (req: Request, res: Response) => {
-            // Reply with a hello world when no name param is provided
-            res.send('Hello, World!');
-        });
-
-        router.get('/:name', (req: Request, res: Response) => {
-            // Extract the name from the request parameters
-            let { name } = req.params;
-
-            // Greet the given name
-            res.send(`Hello, ${name}`);
-        });
-
+    constructor(
+        @Injector.inject("express") protected express:Application
+    ){
+        super(express, undefined, "kit");
     }
 
-    route(): Router{
-        return this.router;
+    protected getMany(req: Request, res: Response){
+        res.status(200).send('many kits!');
+    }
+    protected getOne(req: Request, res: Response){
+        let { id } = req.params;
+        res.status(200).send(`kit, ${id}`);
     }
 
 }
-@Injector.service()
-export class KitController extends controller {
 
-    constructor(@Injector.inject("Router") public router: Router){
-        super(router);
+@Controller()
+export class TestController extends ControllerBase {
+
+    constructor(
+        @Injector.inject("express") protected express:Application,
+        @Injector.inject("KitController") protected parent:ControllerBase
+    ){
+        super(express, parent, "test");
+    }
+
+    protected getMany(req: Request, res: Response){
+        res.status(200).send('many tests!');
+    }
+    protected getOne(req: Request, res: Response){
+        let { id } = req.params;
+        res.status(200).send(`test, ${id}`);
     }
 
 }

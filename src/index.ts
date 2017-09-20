@@ -1,36 +1,50 @@
 /* app/server.ts */
-
 import "reflect-metadata";
-import * as express from 'express';
+import * as express  from 'express';
 import * as bodyParser from 'body-parser';
 import * as Injector from 'typescript-injector-lite';
+import {bootstrap} from './lib'
 
-// Import WelcomeController from controllers entry point
-import { Router } from 'express';
-import { KitController } from './controllers';
+import { MongoClient, MongoError, Db } from "mongodb"
 
-Injector.importValue('Router', Router());
+// Connection URL
+var url = 'mongodb://rw:rwuser@localhost:27017/fpkdb';
+//var url = 'mongodb://admin:admin@localhost:27017/admin';
+
+// Use connect method to connect to the server
+MongoClient.connect(url, (err:MongoError, db:Db) => {
+  
+    if (err){
+        throw new Error(err.code +": "+ err.message)
+    }else{
+        console.log("Connected successfully to database");
+    }
+  
+    db.close();
+});
+
+// Import controllers entry point
+import './controllers';
+
+Injector.importValue("express", express());
 
 @Injector.service()
 export class App {
 
-    // Create a new express application instance
-    app: express.Application = express();
     // The port the express app will listen on
     port: string = process.env.PORT || "3000";
 
-    constructor(@Injector.inject() public kitController:KitController){
+    constructor(
+        @Injector.inject("express") public express:express.Application // Create a new express application instance
+    ){
 
         // configure app to use bodyParser()
         // this will let us get the data from a POST
-        this.app.use(bodyParser.urlencoded({ extended: true }));
-        this.app.use(bodyParser.json());
-
-        // Mount the WelcomeController at the /welcome route
-        this.app.use('/welcome', kitController.route());
+        this.express.use(bodyParser.urlencoded({ extended: true }));
+        this.express.use(bodyParser.json());
 
         // Serve the application at the given port
-        this.app.listen(this.port, () => {
+        this.express.listen(this.port, () => {
             // Success callback
             console.log(`Listening at http://localhost:${this.port}/`);
         });
@@ -40,6 +54,4 @@ export class App {
 }
 
 // Bootstrap App
-Injector.instantiate("App");
-
-
+bootstrap("App");

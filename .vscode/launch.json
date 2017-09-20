@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "server",
+            "env": {
+                "DEBUG":"typescript-injector-light"
+            },
+            "program": "${workspaceRoot}/dist/index",
+            "sourceMaps": true,
+            "outFiles": [
+                "${workspaceRoot}/out/**/*.js"
+            ]
+        }
+    ]
+}

@@ -2,12 +2,15 @@
   "name": "server",
   "version": "1.0.0",
   "description": "",
-  "types": "lib/index",
-  "main": "lib/index",
+  "types": "dist/index",
+  "main": "dist/index",
   "dependencies": {
+    "@types/express": "^4.0.37",
+    "@types/mongodb": "^2.2.11",
     "@types/node": "^8.0.28",
     "body-parser": "^1.18.1",
     "express": "^4.15.4",
+    "mongo": "^0.1.0",
     "reflect-metadata": "^0.1.10",
     "typescript-injector-lite": "^0.1.7"
   },
@@ -17,8 +20,14 @@
     "typescript": "^2.5.2"
   },
   "scripts": {
-    "start": "node ./dist/index.ts",
-    "build": "tsc -w"
+    "start": "node ./dist/index.js",
+    "debug": "node --inspect=49559 --debug-brk ./dist/index.js",
+    "build": "tsc -w",
+    "docker:mongo": "docker run -d -p 27017:27017 --name mongo mongo --auth && powershell sleep 1 && powershell ./db/init.cmd && docker restart mongo",
+    "docker:mongo:start": "docker restart mongo",
+    "docker:mongo:stop": "docker stop mongo",
+    "docker:mongo:reset": "docker stop mongo && docker wait mongo && docker rm mongo && npm run docker:mongo",
+    "docker:server": "docker run --rm -it -p 3000:3000 --name fpk-server"
   },
   "keywords": [],
   "author": "",
