@@ -1,5 +1,5 @@
-import * as Injector from 'typescript-injector-lite';
-import { Router, Request, Response, Application } from 'express';
+import * as Injector from 'typescript-injector-lite'
+import { Router, Request, Response, Application } from 'express'
 
 let controllers:Array<string> = new Array()
 
@@ -20,12 +20,12 @@ export function Controller(key?:string){
  * 
  */
 export function bootstrap(appServiceKey:string = 'App'):void{
-    console.log('======= bootstrap =======');
+    console.log('======= bootstrap =======')
     controllers.forEach(c=>{
         let inst:ControllerBase = Injector.instantiate(c)
         console.log('Controller ['+c+'] => ' + inst.getPath().join('/'))
-    });
-    Injector.instantiate(appServiceKey);
+    })
+    Injector.instantiate(appServiceKey)
 }
 
 /**
@@ -46,43 +46,43 @@ export abstract class ControllerBase {
         this.path = '/'+this.resourceName
         this.pathRef = this.path+'/:'+this.resourceRefName
 
-        this.router.options(this.path, this.options);
-        this.router.post(this.path, this.post);
-        this.router.get(this.path, this.getMany);
-        this.router.get(this.pathRef, this.getOne);
-        this.router.patch(this.pathRef, this.patch);
-        this.router.put(this.pathRef, this.put);
-        this.router.delete(this.pathRef, this.delete);
+        this.router.options(this.path, (...args) => this.options.apply(this, args))
+        this.router.post(this.path, (...args) => this.post.apply(this, args))
+        this.router.get(this.path, (...args) => this.getMany.apply(this, args))
+        this.router.get(this.pathRef, (...args) => this.getOne.apply(this, args))
+        this.router.patch(this.pathRef, (...args) => this.patch.apply(this, args))
+        this.router.put(this.pathRef, (...args) => this.put.apply(this, args))
+        this.router.delete(this.pathRef, (...args) => this.delete.apply(this, args))
 
         if (parent === undefined){
-            app.use('/',this.router);
+            app.use('/',this.router)
         }else{
-            parent.router.use(parent.pathRef ,this.router);
+            parent.router.use(parent.pathRef ,this.router)
         }
         
     }
 
     public getPath(pathMem:Array<string> = new Array()):Array<string> {
 
-        pathMem.unshift(this.resourceName, ':'+this.resourceRefName);
+        pathMem.unshift(this.resourceName, ':'+this.resourceRefName)
         return this.parent !== undefined ?
             this.parent.getPath(pathMem) :
-            pathMem;
+            pathMem
 
     }
 
     protected options(req: Request, res: Response):void { 
-        res.header('Access-Control-Allow-Origin', '*');
-        res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
-        res.send(200);    
+        res.header('Access-Control-Allow-Origin', '*')
+        res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With')
+        res.send(200)    
     }
 
-    protected post(req: Request, res: Response):void {  }
-    protected getMany(req: Request, res: Response):void { res.sendStatus(405); }
-    protected getOne(req: Request, res: Response):void { res.sendStatus(405); }
-    protected patch(req: Request, res: Response):void { res.sendStatus(405); }
-    protected put(req: Request, res: Response):void { res.sendStatus(405); }
-    protected delete(req: Request, res: Response):void { res.sendStatus(405); }
+    protected post(req: Request, res: Response):void { res.sendStatus(405) }
+    protected getMany(req: Request, res: Response):void { res.sendStatus(405) }
+    protected getOne(req: Request, res: Response):void { res.sendStatus(405) }
+    protected patch(req: Request, res: Response):void { res.sendStatus(405) }
+    protected put(req: Request, res: Response):void { res.sendStatus(405) }
+    protected delete(req: Request, res: Response):void { res.sendStatus(405) }
 
 }

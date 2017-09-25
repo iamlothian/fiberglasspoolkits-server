@@ -9,8 +9,6 @@
     "emitDecoratorMetadata":true,
     "diagnostics": true,
     "pretty": true,
-    "listFiles": true,
-    "listEmittedFiles": true,
     "typeRoots": [
       "./typings"
     ],
@@ -18,7 +16,7 @@
       "reflect-metadata",
       "node",
       "express",
-      "mongodb"
+      "pg"
     ]
   },
   "include": [
