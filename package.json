@@ -12,6 +12,7 @@
     "express": "^4.15.4",
     "pg": "^7.3.0",
     "reflect-metadata": "^0.1.10",
+    "sql-template-strings": "^2.2.2",
     "typescript-injector-lite": "^0.1.7",
     "uuid": "^3.1.0"
   },
