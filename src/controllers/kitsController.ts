@@ -2,7 +2,7 @@
 
 import * as Injector from 'typescript-injector-lite'
 import { Router, Request, Response, Application } from 'express' 
-import {ControllerBase, Controller, getColumns} from '../lib'
+import { ControllerBase, Controller, getColumns } from '../lib'
 import { Kit } from '../models'
 import { DB, Query } from "../db"
 
@@ -18,28 +18,90 @@ export class KitController extends ControllerBase {
         super(express, undefined, "kit")
     }
 
-    protected async post(req: Request, res: Response){
+    protected async post(req: Request, res: Response){  
+        try {
 
-        let kit:Kit = new Kit()
+            if (!req.body) { 
+                throw new Error("No request body found")
+            }
 
-        kit.title = "My New Kit"
+            let kit:Kit = await Kit.create(Kit, req.body)
+            res.status(200).send(kit)
 
-        kit = await this.db.insert(kit);
-
-        res.status(200).send(kit)
+        } catch (error) {
+            console.error(error)
+            res.status(400).send({
+                errors:[error.message]
+            })
+        }
     }
 
     protected async getMany(req: Request, res: Response){
-        res.status(200).send('many kits!')
+        try {
+            let kits:Array<Kit> = await Kit.getAll(Kit)
+            res.status(200).send(kits)
+
+        } catch (error) {
+            console.error(error)
+            res.status(400).send({
+                errors:[error.message]
+            })
+        }
     }
     protected async getOne(req: Request, res: Response){
         let { id } = req.params
 
-        let query:Query<Kit> = new Query(Kit).where(kit => kit.column('id').equals(id))
-        
-        let kits:Array<Kit> = await this.db.execute(Kit, query);
+        try {
+            let kit:Kit = await Kit.getByEntityId(Kit, id)
+            res.status(200).send(kit)
 
-        res.status(200).send(kits)
+        } catch (error) {
+            console.error(error)
+            res.status(400).send({
+                errors:[error.message]
+            })
+        }
+    }
+
+    /**
+     * New version of the resource
+     * @param req 
+     * @param res 
+     */
+    protected async patch(req: Request, res: Response){
+        // let { id } = req.params,
+        //     kit:Kit = Kit.deserialize(req.body, Kit)
+
+        // let query = Query.update(kit).where(kit => kit.column('id').equals(id))
+        
+        // let kits:Array<Kit> = await this.db.execute(Kit, query);
+
+        // res.status(200).send(kits)
+    }
+
+    /**
+     * Update the current resource
+     * @param req 
+     * @param res 
+     */
+    protected async put(req: Request, res: Response){
+        // let { id } = req.params,
+        //     kit:Kit = Kit.deserialize(req.body, Kit)
+
+        // let query = Query.update(kit).where(kit => kit.column('id').equals(id))
+        
+        // let kits:Array<Kit> = await this.db.execute(Kit, query);
+
+        // res.status(200).send(kits)
+    }
+    protected async delete(req: Request, res: Response){
+        // let { id } = req.params
+
+        // let query = Query.delete(Kit).where(kit => kit.column('id').equals(id))
+        
+        // let kits:Array<Kit> = await this.db.execute(Kit, query);
+
+        // res.status(204).send(kits)
     }
 
 }

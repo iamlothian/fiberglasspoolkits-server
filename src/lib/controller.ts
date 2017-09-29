@@ -1,4 +1,5 @@
 import * as Injector from 'typescript-injector-lite'
+import * as bodyParser from 'body-parser'
 import { Router, Request, Response, Application } from 'express'
 
 let controllers:Array<string> = new Array()
@@ -21,11 +22,11 @@ export function Controller(key?:string){
  */
 export function bootstrap(appServiceKey:string = 'App'):void{
     console.log('======= bootstrap =======')
+    Injector.instantiate(appServiceKey)
     controllers.forEach(c=>{
         let inst:ControllerBase = Injector.instantiate(c)
         console.log('Controller ['+c+'] => ' + inst.getPath().join('/'))
     })
-    Injector.instantiate(appServiceKey)
 }
 
 /**
@@ -53,8 +54,10 @@ export abstract class ControllerBase {
         this.router.patch(this.pathRef, (...args) => this.patch.apply(this, args))
         this.router.put(this.pathRef, (...args) => this.put.apply(this, args))
         this.router.delete(this.pathRef, (...args) => this.delete.apply(this, args))
-
+        
         if (parent === undefined){
+            app.use(bodyParser.urlencoded({ extended: true }))
+            app.use(bodyParser.json())
             app.use('/',this.router)
         }else{
             parent.router.use(parent.pathRef ,this.router)

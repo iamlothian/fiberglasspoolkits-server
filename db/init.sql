@@ -1,19 +1,19 @@
+DROP TABLE kit;
+
 CREATE TABLE IF NOT EXISTS kit (
-    id                  serial,
-    entity_id           uuid,
-    version             NUMERIC(1),
-    created_at          timestamp,
-    created_by          varchar(60),
-    updated_at          timestamp,
-    updated_by          varchar(60),
-    activate_at         timestamp,
+    id                  serial      CONSTRAINT id_pk PRIMARY KEY,
+    entity_id           uuid        NOT NULL,
+    version             NUMERIC(1)  NOT NULL,
+    created_at          timestamp   NOT NULL,
+    created_by          varchar(60) NOT NULL,
+    updated_at          timestamp   NOT NULL,
+    updated_by          varchar(60) NOT NULL,
+    activate_at         timestamp   NOT NULL,
     deactivate_at       timestamp,
-    state               smallint,
-    title               varchar(60),
-    description         varchar(255)
+    state               smallint    NOT NULL,
+    title               varchar(60)     NOT NULL,
+    description         varchar(255)    NOT NULL
 );
-ALTER TABLE public.kit
-    ADD CONSTRAINT id_pk PRIMARY KEY (id);
 
 CREATE UNIQUE INDEX IF NOT EXISTS index_id
     ON public.kit USING btree

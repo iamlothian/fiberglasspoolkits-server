@@ -21,10 +21,12 @@ class App {
         @Injector.inject("express") public express:express.Application // Create a new express application instance
     ){
 
+        console.log("Constructing Application");
+
         // configure app to use bodyParser()
         // this will let us get the data from a POST
-        this.express.use(bodyParser.urlencoded({ extended: true }))
-        this.express.use(bodyParser.json())
+        ///this.express.use(bodyParser.urlencoded({ extended: true }))
+        //this.express.use(bodyParser.json())
 
         // Serve the application at the given port
         this.express.listen(this.port, () => {

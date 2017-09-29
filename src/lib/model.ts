@@ -2,21 +2,22 @@ import "reflect-metadata"
 import * as Injector from 'typescript-injector-lite'
 
 const TableMetadataKey = Symbol("design:tableName")
-const columnMetadataKey = Symbol("design:columnName")
-const columnTypeMetadataKey = Symbol("design:columnType")
-const columnROMetadataKey = Symbol("design:columnReadOnly")
+const columnMetadataKey = Symbol("design:column")
 
 export interface Column {
-    name:string
-    value:any
-    type:string
-    dbType:string
-    isReadOnly:boolean
+    name?:string
+    property?:string
+    value?:any
+    type?:string
+    dbType?:string
+    isReadOnly?:boolean
+    isRequired?:boolean
+    isPublic?:boolean
 }
 
 export abstract class Model {
     
-    @column("id", true, 'serial')
+    @column({name:"id", isReadOnly:true, dbType:'serial'})
     id: number = undefined
 
     /**
@@ -41,11 +42,21 @@ export abstract class Model {
      * @param type 
      */
     static deserialize<T extends Model>(tableRow: object, type: { new(): T; }): T {
-        let inst: T = new type()
+        let inst: T = new type(),
+            missingProps = new Array<string>()
 
         inst.columns.forEach(c => {
-            inst[c.name] = tableRow[c.name]
+            if (c.isRequired && tableRow[c.name] == undefined){
+                missingProps.push(c.property)
+            }
+            if (tableRow[c.name] != undefined){
+                inst[c.property] = tableRow[c.name]
+            }
         })
+
+        if (missingProps.length>0){
+            throw new Error('Required properties of model ['+inst.tableName+'] not present ['+missingProps.join(', ')+']')
+        }
 
         return inst
     }
@@ -102,12 +113,13 @@ export function getTableName(target: any): string {
  * 
  * @param columnsName 
  */
-export function column(columnName?: string, readOnly?: boolean, dbType?: string): any {
+export function column({name,property,value,type,dbType,isReadOnly=false,isRequired=false,isPublic=true}:Column = {}): any {
+    var column:Column = {name,property,value,type,dbType,isReadOnly,isRequired,isPublic}
     return (target, propertyKey) => {
-        columnName = columnName || toUnderscoreCase(propertyKey)
-        Reflect.defineMetadata(columnMetadataKey, columnName, target, propertyKey)
-        !readOnly && Reflect.defineMetadata(columnROMetadataKey, dbType, target, propertyKey)
-        !dbType && Reflect.defineMetadata(columnTypeMetadataKey, dbType, target, propertyKey)
+        column.name = column.name || toUnderscoreCase(propertyKey)
+        column.property = propertyKey
+        column.type = Reflect.getMetadata('desigm:type', target, propertyKey)
+        Reflect.defineMetadata(columnMetadataKey, column, target, propertyKey)
     }
 }
 
@@ -119,15 +131,10 @@ export function getColumns(target: any): Array<Column> {
     let columns = Array<Column>(), prototype = target
     while (prototype !== null) {
         Object.getOwnPropertyNames(prototype).forEach(c => {
-            let columnName = Reflect.getMetadata(columnMetadataKey, prototype, c)
-            if (columnName !== undefined) {
-                columns.push({
-                    'name': columnName,
-                    'value': target[c],
-                    'type': Reflect.getMetadata('design:type', prototype, c),
-                    'dbType': Reflect.getMetadata(columnTypeMetadataKey, prototype, c),
-                    'isReadOnly': Reflect.getMetadata(columnROMetadataKey, prototype, c)
-                })
+            let column:Column = Reflect.getMetadata(columnMetadataKey, prototype, c)
+            if (column !== undefined) {
+                column.value = target[c]
+                columns.push(column)
             }
         })
         prototype = Object.getPrototypeOf(prototype)
