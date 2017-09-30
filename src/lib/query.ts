@@ -5,9 +5,12 @@ import { Model, Column } from './model'
  */
 export enum QUERY_TOKENS { 
     SELECT,
+    COUNT,
     UPDATE,
     INSERT,
     DELETE,
+    ORDER_BY,
+    LIMIT,
     JOIN,
     WHERE,
     AND,
@@ -21,7 +24,9 @@ export enum QUERY_TOKENS {
     GREATER_THAN_EQUAL, 
     LESS_THAN, 
     LESS_THAN_EQUAL, 
-    IN
+    IN,
+    NOT_NULL,
+    IS_NULL
 }
 
 export interface QueryableColunms {
@@ -36,9 +41,12 @@ export class QueryColunms implements QueryableColunms{
         private queryStack:Array<QueryPart> = []
     ) {}
     column(columnName:string): QueryableOperands {
-        let column:Column = this.columns.find((c) => c.property === columnName) 
+        let column:Column = this.columns.find((c) => c.property === columnName)
+        if(column === undefined){
+            throw new Error('No property found matching:'+column)
+        }
         return new QueryOperands(
-            column, 
+            column.name, 
             this.columns, 
             this.queryStack
         )
@@ -53,20 +61,22 @@ export interface QueryableOperands {
     lt(value: string | number): QueryPartsStack
     lte(value: string | number): QueryPartsStack
     in(values: Array<string | number>): QueryPartsStack
+    notNull(): QueryPartsStack
+    isNull(): QueryPartsStack
 }
 /**
  * 
  */
 export class QueryOperands implements QueryableOperands {
     constructor(
-        private column:Column, 
+        private column:string, 
         private columns: Array<Column>,
         private queryStack:Array<QueryPart>
     ){}
 
-    construct(operand:QUERY_TOKENS, value:string|number|Array<string|number>): QueryPartsStack {
+    construct(operand:QUERY_TOKENS, value:string|number|Array<string|number> = undefined): QueryPartsStack {
         this.queryStack.push(
-            new QueryPart(operand, this.column.name, value)
+            new QueryPart(operand, this.column, value)
         )
         return new QueryConditionsStack(
             this.columns,
@@ -80,6 +90,8 @@ export class QueryOperands implements QueryableOperands {
     lt(value:string|number): QueryPartsStack { return this.construct(QUERY_TOKENS.LESS_THAN,value) }
     lte(value:string|number): QueryPartsStack { return this.construct(QUERY_TOKENS.LESS_THAN_EQUAL,value) }
     in(values:Array<string|number>): QueryPartsStack { return this.construct(QUERY_TOKENS.IN,values) }
+    notNull(): QueryPartsStack { return this.construct(QUERY_TOKENS.NOT_NULL) }
+    isNull(): QueryPartsStack { return this.construct(QUERY_TOKENS.IS_NULL) }
 }
 
 export interface QueryPartsStack {
@@ -120,13 +132,21 @@ export class QueryPart {
     /**
      * 
      * @param operation The operation this part represents
-     * @param target The target of the operation, usually a column, table or list of columns
-     * @param value Optional values applied to the target of the operation
+     * @param target The target of the operation
+     * @param value Optional values intended for use in comparison operations
      */
     constructor(
         public operation: QUERY_TOKENS,
         public target: any = undefined,
         public value: any = undefined
+    ){}
+}
+
+export enum ORDER_BY_DIRECTION { ACS, DESC }
+export class OrderByField {
+    constructor(
+        public column:string,
+        public direction:ORDER_BY_DIRECTION = ORDER_BY_DIRECTION.ACS
     ){}
 }
 
@@ -141,6 +161,7 @@ export abstract class Queryable<T extends Model> {
     ){}
 
     static select<T extends Model>(modelType: { new(): T; }): Queryable<T> { throw new Error("Method not implemented in child class."); }
+    static count<T extends Model>(modelType: { new(): T; }): Queryable<T> { throw new Error("Method not implemented in child class."); }
     static insert<T extends Model>(model: T): Queryable<T> { throw new Error("Method not implemented in child class."); }
     static update<T extends Model>(model:T): Queryable<T> { throw new Error("Method not implemented in child class."); }
     static delete<T extends Model>(modelType: { new (): T; }, id:number): Queryable<T> { throw new Error("Method not implemented in child class."); }
@@ -156,6 +177,21 @@ export abstract class Queryable<T extends Model> {
     }
     not(conditionFunction:(table:QueryableColunms) => QueryPartsStack){
         return this.condition(QUERY_TOKENS.NOT, conditionFunction)
+    }
+    orderBy(orderByColumns:Array<OrderByField>){
+        orderByColumns.forEach(c=>{
+            let column:Column = this.columns.find(v=>v.property === c.column)
+            if(column === undefined){
+                throw new Error('No property found matching:'+c.column)
+            }
+            c.column = column.name
+        })
+        this._queryParts.push(new QueryPart(QUERY_TOKENS.ORDER_BY, orderByColumns))
+        return this
+    }
+    limit(limit:number){
+        this._queryParts.push(new QueryPart(QUERY_TOKENS.LIMIT, limit))
+        return this
     }
     private condition(logic:QUERY_TOKENS, conditionFunction:(table:QueryableColunms) => QueryPartsStack): Queryable<T> {
 

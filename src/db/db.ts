@@ -1,6 +1,15 @@
 import * as Injector from 'typescript-injector-lite'
 import { Pool, Client, QueryResult }  from 'pg'
-import { Model, Column, Datastore, Queryable, QUERY_TOKENS, QueryPart } from '../lib'
+import { 
+    Model, 
+    Column, 
+    Datastore, 
+    Queryable, 
+    QUERY_TOKENS, 
+    QueryPart, 
+    OrderByField, 
+    ORDER_BY_DIRECTION 
+} from '../lib'
 
 /**
  * An implementation of the Datastore interface which communicates with a posgres database
@@ -79,10 +88,15 @@ export class DB implements Datastore {
 
         switch(queryPart.operation) {
             case QUERY_TOKENS.SELECT: return this.selectRecipe(queryPart)
+            case QUERY_TOKENS.COUNT: return `SELECT COUNT(*) FROM ${<Model>(queryPart.target).tableName}`
             case QUERY_TOKENS.UPDATE: return this.updateRecipe(queryPart, values) 
             case QUERY_TOKENS.INSERT: return this.insertRecipe(queryPart, values) 
             case QUERY_TOKENS.DELETE: return this.deleteRecipe(queryPart) 
-            case QUERY_TOKENS.JOIN: //return "JOIN"
+            case QUERY_TOKENS.ORDER_BY: return this.orderByRecipe(queryPart)
+            case QUERY_TOKENS.LIMIT: 
+                values.push(queryPart.target)
+                return 'LIMIT $'+values.length
+            //case QUERY_TOKENS.JOIN: return "JOIN"
 
             case QUERY_TOKENS.WHERE: return "WHERE"
             case QUERY_TOKENS.AND: return "AND"
@@ -98,6 +112,8 @@ export class DB implements Datastore {
             case QUERY_TOKENS.LESS_THAN: return this.operandRecipe('<', queryPart, values) 
             case QUERY_TOKENS.LESS_THAN_EQUAL: return this.operandRecipe('<=', queryPart, values) 
             case QUERY_TOKENS.NOT_EQUALS: return this.operandRecipe('!=', queryPart, values) 
+            case QUERY_TOKENS.IS_NULL: return queryPart.target+' ISNULL'
+            case QUERY_TOKENS.NOT_NULL: return queryPart.target+' NOTNULL' 
             
             default: throw new Error("Token [" + queryPart.operation + "] not implemented")
         }
@@ -122,7 +138,7 @@ export class DB implements Datastore {
                 return c.name+'=$'+values.length
             })
 
-        return `UPDATE ${model.tableName} SET ${setColumns.join(',')} RETURNING *`
+        return `UPDATE ${model.tableName} SET ${setColumns.join(',')}`
     }
     private insertRecipe(queryPart: QueryPart, values:Array<any>): string {
         let model = <Model>queryPart.target,
@@ -141,6 +157,10 @@ export class DB implements Datastore {
     private deleteRecipe(queryPart: QueryPart): string {
         let table = <Model>queryPart.target
         return `DELETE FROM ${table}`
+    }
+    private orderByRecipe(queryPart: QueryPart): string {
+        let fields = queryPart.target.map(f=>f.column+' '+ORDER_BY_DIRECTION[f.direction])
+        return 'ORDER BY '+fields.join(', ')
     }
 
 }

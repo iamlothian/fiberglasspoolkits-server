@@ -18,7 +18,10 @@ export interface Column {
 export abstract class Model {
     
     @column({name:"id", isReadOnly:true, dbType:'serial'})
-    id: number = undefined
+    private _id: number = undefined
+    get id():number {
+        return this._id
+    }
 
     /**
      * 
@@ -37,28 +40,56 @@ export abstract class Model {
     protected constructor(){}
 
     /**
-     * 
+     * Create a new instance using the provided constructor type, and map the provided viewModel properties to it where supported on the constructor
      * @param tableRow 
-     * @param type 
+     * @param viewModel
+     * @param mode 
      */
-    static deserialize<T extends Model>(tableRow: object, type: { new(): T; }): T {
+    static deserialize<T extends Model>(type: { new(): T; }, viewModel: object, mode:'ROW'|'REQ' = "ROW"): T {
         let inst: T = new type(),
             missingProps = new Array<string>()
 
         inst.columns.forEach(c => {
-            if (c.isRequired && tableRow[c.name] == undefined){
+            if (c.isRequired && viewModel[c.name] == undefined){
                 missingProps.push(c.property)
             }
-            if (tableRow[c.name] != undefined){
-                inst[c.property] = tableRow[c.name]
+            if (mode === "ROW" && viewModel[c.name] != undefined){
+                inst[c.property] = viewModel[c.name]
+            }
+            if (mode === "REQ" && viewModel[c.property] != undefined){
+                inst[c.property] = viewModel[c.property]
             }
         })
-
+        
         if (missingProps.length>0){
             throw new Error('Required properties of model ['+inst.tableName+'] not present ['+missingProps.join(', ')+']')
         }
 
         return inst
+    }
+
+    /**
+     * Patch and existing instance of a Model by mapping the patchModel properties to it where supported on the constructor
+     * @param inst 
+     * @param patch 
+     */
+    static patch<T extends Model>(modle:T, patchModel: object): T {
+        let missingProps = new Array<string>()
+
+        modle.columns.forEach(c => {
+            if (c.isRequired && patchModel[c.property] == undefined){
+                missingProps.push(c.property)
+            }
+            if (patchModel[c.property] != undefined){
+                modle[c.property] = patchModel[c.property]
+            }
+        })
+        
+        if (missingProps.length>0){
+            throw new Error('Required properties of model ['+modle.tableName+'] not present ['+missingProps.join(', ')+']')
+        }
+
+        return modle
     }
 
     // /**

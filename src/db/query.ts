@@ -30,6 +30,19 @@ export class Query<T extends Model> extends Queryable<T> implements Queryable<T>
     }
     /**
      * 
+     * @param modelType 
+     */
+    static count<T extends Model>(modelType: { new (): T; }): Queryable<T>  {
+        let modelInst = new modelType(),
+            queryParts = new Array<QueryPart>()
+
+        queryParts.push(
+            new QueryPart(QUERY_TOKENS.COUNT, modelInst)
+        )
+        return new Query(modelInst.columns, queryParts);
+    }
+    /**
+     * 
      * @param model 
      */
     static insert<T extends Model>(model:T): Queryable<T>  {
