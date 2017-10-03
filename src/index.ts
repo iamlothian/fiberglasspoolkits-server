@@ -3,13 +3,15 @@ import "reflect-metadata"
 import * as express  from 'express'
 import * as bodyParser from 'body-parser'
 import * as Injector from 'typescript-injector-lite'
-import {API} from './lib'
+import {API, Drivers} from './lib'
 
 
 // Import controllers entry point
 import './controllers'
 
 Injector.importValue("express", express())
+// register posgresql driver as DB
+Injector.importValue("DB", new Drivers.Postgres.Driver())
 
 @Injector.service()
 class App {

@@ -1,7 +1,7 @@
-import { DTO, Query } from '../lib'
+import {DTO, Queryable} from '../../orm'
 
 
-export class Operand implements Query.OperandRecipe {
+export class Operand implements Queryable.OperandRecipe {
     
     columns:Array<string> = new Array<string>()
     values:Array<string> = new Array<string>()
@@ -21,28 +21,28 @@ export class Operand implements Query.OperandRecipe {
     }
     
 }
-export class Equals extends Operand implements Query.EqualsRecipe {
+export class Equals extends Operand implements Queryable.EqualsRecipe {
     constructor( public table:string, column:DTO.Column, value:any) { super(table, column, value, '=') }
 }
-export class NotEquals extends Operand implements Query.NotEqualsRecipe {
+export class NotEquals extends Operand implements Queryable.NotEqualsRecipe {
     constructor( public table:string, column:DTO.Column, value:any) { super(table, column, value, '!=') }
 }
-export class GreaterThan extends Operand implements Query.GreaterThanRecipe {
+export class GreaterThan extends Operand implements Queryable.GreaterThanRecipe {
     constructor( public table:string, column:DTO.Column, value:any) { super(table, column, value, '>') }
 }
-export class GreaterThanEqual extends Operand implements Query.GreaterThanEqualRecipe {
+export class GreaterThanEqual extends Operand implements Queryable.GreaterThanEqualRecipe {
     constructor( public table:string, column:DTO.Column, value:any) { super(table, column, value, '>=') }
 }
-export class LessThan extends Operand implements Query.LessThanRecipe {
+export class LessThan extends Operand implements Queryable.LessThanRecipe {
     constructor( public table:string, column:DTO.Column, value:any) { super(table, column, value, '<') }
 }
-export class LessThanEqual extends Operand implements Query.LessThanEqualRecipe {
+export class LessThanEqual extends Operand implements Queryable.LessThanEqualRecipe {
     constructor( public table:string, column:DTO.Column, value:any) { super(table, column, value, '<=') }
 }
-export class In extends Operand implements Query.InRecipe {
+export class In extends Operand implements Queryable.InRecipe {
     constructor( public table:string, column:DTO.Column, values:Array<any>) { super(table, column, values, 'IN') }
 }
-export class NotNull implements Query.NotNullRecipe {
+export class NotNull implements Queryable.NotNullRecipe {
     
     columns:Array<string> = new Array<string>()
     values:Array<string> = new Array<string>()
@@ -59,7 +59,7 @@ export class NotNull implements Query.NotNullRecipe {
     }
     
 }
-export class IsNull implements Query.IsNullRecipe {
+export class IsNull implements Queryable.IsNullRecipe {
     
     columns:Array<string> = new Array<string>()
     values:Array<string> = new Array<string>()
@@ -76,7 +76,8 @@ export class IsNull implements Query.IsNullRecipe {
     }
     
 }
-export class Select implements Query.SelectRecipe {
+
+export class Select implements Queryable.SelectRecipe {
 
     columns:Array<string> = new Array<string>()
     values:Array<string> = new Array<string>()
@@ -86,14 +87,15 @@ export class Select implements Query.SelectRecipe {
     }
 
     constructor(
-        public table:string, 
-        columns:Array<DTO.Column>
+        model:DTO.Model,
+        public table:string = model.tableName, 
+        columns:Array<DTO.Column> = model.columns
     ){
         this.columns = columns.map(v=>v.name)
     }
     
 }
-export class Count implements Query.CountRecipe {
+export class Count implements Queryable.CountRecipe {
     
     columns:Array<string> = new Array<string>()
     values:Array<string> = new Array<string>()
@@ -103,14 +105,15 @@ export class Count implements Query.CountRecipe {
     }
 
     constructor(
-        public table:string, 
-        columns:Array<DTO.Column>
+        model:DTO.Model,
+        public table:string = model.tableName, 
+        columns:Array<DTO.Column> = model.columns
     ){
         this.columns = columns.map(v=>v.name)
     }
     
 }
-export class Update implements Query.UpdateRecipe {
+export class Update implements Queryable.UpdateRecipe {
     
     columns:Array<string> = new Array<string>()
     values:Array<string> = new Array<string>()
@@ -120,8 +123,9 @@ export class Update implements Query.UpdateRecipe {
     }    
 
     constructor(
-        public table:string, 
-        columns:Array<DTO.Column>
+        model:DTO.Model,
+        public table:string = model.tableName, 
+        columns:Array<DTO.Column> = model.columns
     ){
         columns = columns.filter(v => v.value !== undefined && !v.isReadOnly)
         this.columns = columns.map(v=>v.name)
@@ -129,7 +133,7 @@ export class Update implements Query.UpdateRecipe {
     }
     
 }
-export class Insert implements Query.InsertRecipe {
+export class Insert implements Queryable.InsertRecipe {
     
     columns:Array<string> = new Array<string>()
     values:Array<string> = new Array<string>()
@@ -139,8 +143,9 @@ export class Insert implements Query.InsertRecipe {
     }    
 
     constructor(
-        public table:string, 
-        columns:Array<DTO.Column>
+        model:DTO.Model,
+        public table:string = model.tableName, 
+        columns:Array<DTO.Column> = model.columns
     ){
         columns = columns.filter(v => v.value !== undefined && !v.isReadOnly)
         this.columns = columns.map(v=>v.name)
@@ -148,7 +153,7 @@ export class Insert implements Query.InsertRecipe {
     }
     
 }
-export class Delete implements Query.DeleteRecipe {
+export class Delete implements Queryable.DeleteRecipe {
     
     columns:Array<string> = new Array<string>()
     values:Array<string> = new Array<string>()
@@ -158,37 +163,38 @@ export class Delete implements Query.DeleteRecipe {
     }    
 
     constructor(
-        public table:string, 
+        model:DTO.Model,
+        public table:string = model.tableName
     ){}
     
 }
-export class OrderBy implements Query.OrderByRecipe {
-    
-    columns:Array<string> = new Array<string>()
-    values:Array<string> = new Array<string>()
 
-    bake(valueCount:number):string {
-        return `ORDER BY ${this.columns.map(c=>'$'+(++valueCount)).join(',')}`
-    }    
-
-    constructor(
-        public table:string, 
-        columns:Array<DTO.Column>,
-        public SortDirections:Array<"ASC"|"DESC">
-    ){
-        this.columns = columns.map(v=>v.name)
-        this.values = columns.map(v=>v.value)
-    }
-    
-}
-export class Limit implements Query.LimitRecipe {
+export class OrderBy implements Queryable.OrderByRecipe {
     
     table:string = ""
     columns:Array<string> = new Array<string>()
     values:Array<string> = new Array<string>()
 
     bake(valueCount:number):string {
-        return `LIMIT ${this.values[0]}`
+        return `ORDER BY ${this.columns.map((c,i)=>c+' '+this.SortDirections[i]).join(',')}`
+    }    
+
+    constructor(
+        columns:Array<DTO.Column>,
+        public SortDirections:Array<"ASC"|"DESC">
+    ){
+        this.columns = columns.map(v=>v.name)
+    }
+    
+}
+export class Limit implements Queryable.LimitRecipe {
+    
+    table:string = ""
+    columns:Array<string> = new Array<string>()
+    values:Array<string> = new Array<string>()
+
+    bake(valueCount:number):string {
+        return `LIMIT $${++valueCount}`
     }    
 
     constructor(
@@ -197,4 +203,29 @@ export class Limit implements Query.LimitRecipe {
         this.values.push(value.toFixed())
     }
     
+}
+
+export class Token implements Queryable.TokenRecipe {
+    table:string = ""
+    columns:Array<string> = new Array<string>()
+    values:Array<string> = new Array<string>()
+
+    bake(valueCount:number):string {
+        return this.token
+    }
+    constructor(public token:string){}
+}
+export class And extends Token implements Queryable.AndRecipe {
+    
+    table:string = ""
+    columns:Array<string> = new Array<string>()
+    values:Array<string> = new Array<string>()
+    constructor(public token:string = 'AND'){super(token)}
+}
+export class Or extends Token implements Queryable.OrRecipe {
+    
+    table:string = ""
+    columns:Array<string> = new Array<string>()
+    values:Array<string> = new Array<string>()
+    constructor(public token:string = 'OR'){super(token)}
 }

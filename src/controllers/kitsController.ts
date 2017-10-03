@@ -2,9 +2,8 @@
 
 import * as Injector from 'typescript-injector-lite'
 import { Router, Request, Response, Application } from 'express' 
-import { API } from '../lib'
+import { API, ORM } from '../lib'
 import { Kit, ENTITY_STATE } from '../models'
-import { DB, Query } from "../db"
 
 
 
@@ -12,8 +11,7 @@ import { DB, Query } from "../db"
 export class KitController extends API.ControllerBase {
 
     constructor(
-        @Injector.inject("express") protected express:Application,
-        @Injector.inject() protected db:DB
+        @Injector.inject("express") protected express:Application
     ){
         super(express, undefined, "kit")
     }

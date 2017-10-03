@@ -1,8 +1,8 @@
 import * as Injector from 'typescript-injector-lite'
-import { DTO } from '../lib'
+import { table } from '../lib/orm/model'
 import { Entity } from "./entity"
 
-@DTO.table()
+@table()
 export class Kit extends Entity {
 
     constructor(){

@@ -1,10 +1,10 @@
 import { Model, Column } from './model'
-import { Queryable, QUERY_TOKENS } from './query'
+import { Queryable } from './query'
 
 /**
  * a generic class which can run queries on a database
  */
-export interface Datastore {
+export interface Driver {
     
     /**
      * run a query with vales on a database
