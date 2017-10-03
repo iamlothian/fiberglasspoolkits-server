@@ -1,5 +1,34 @@
 import { Model, Column } from './model'
 
+export interface QueryRecipe {
+    
+    table:string
+    columns:Array<string>
+    values:Array<string>
+
+    bake(valueCount:number):any
+    
+}
+/* Place holders for required recipies */
+export interface OperandRecipe extends QueryRecipe { operand:string }
+export interface EqualsRecipe extends OperandRecipe {}
+export interface NotEqualsRecipe extends OperandRecipe {}
+export interface GreaterThanRecipe extends OperandRecipe {}
+export interface GreaterThanEqualRecipe extends OperandRecipe {}
+export interface LessThanRecipe extends OperandRecipe {}
+export interface LessThanEqualRecipe extends OperandRecipe {}
+export interface InRecipe extends OperandRecipe {}
+export interface NotNullRecipe extends QueryRecipe {}
+export interface IsNullRecipe extends QueryRecipe {}
+
+export interface SelectRecipe extends QueryRecipe {}
+export interface CountRecipe extends QueryRecipe {}
+export interface UpdateRecipe extends QueryRecipe {}
+export interface InsertRecipe extends QueryRecipe {}
+export interface DeleteRecipe extends QueryRecipe {}
+export interface OrderByRecipe extends QueryRecipe {}
+export interface LimitRecipe extends QueryRecipe {}
+
 /**
  * Common keywords and tokens used in building queries
  */

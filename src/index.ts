@@ -3,7 +3,7 @@ import "reflect-metadata"
 import * as express  from 'express'
 import * as bodyParser from 'body-parser'
 import * as Injector from 'typescript-injector-lite'
-import {bootstrap} from './lib'
+import {API} from './lib'
 
 
 // Import controllers entry point
@@ -39,4 +39,4 @@ class App {
 }
 
 // Bootstrap App
-bootstrap("App")
+API.bootstrap("App")

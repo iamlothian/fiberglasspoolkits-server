@@ -18,4 +18,18 @@ export interface Datastore {
      */
     execute<T extends Model>(query:Queryable<T>) : Promise<any>
 
+    /**
+     * 
+     */
+    prepare<T extends Model>(queryFn:(...any) => Queryable<T>, paramFn:(...any) => Array<any>): PrepareableQuery
+
+}
+
+
+export interface PrepareableQuery {
+
+
+
+    execute() : Promise<any>
+
 }

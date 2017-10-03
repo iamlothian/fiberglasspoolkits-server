@@ -2,14 +2,14 @@
 
 import * as Injector from 'typescript-injector-lite'
 import { Router, Request, Response, Application } from 'express' 
-import { ControllerBase, Controller, getColumns } from '../lib'
+import { API } from '../lib'
 import { Kit, ENTITY_STATE } from '../models'
 import { DB, Query } from "../db"
 
 
 
-@Controller()
-export class KitController extends ControllerBase {
+@API.Controller()
+export class KitController extends API.ControllerBase {
 
     constructor(
         @Injector.inject("express") protected express:Application,
@@ -26,7 +26,9 @@ export class KitController extends ControllerBase {
             }
 
             let kit:Kit = await Kit.create(Kit, req.body)
-            res.status(200).send(kit)
+            res.status(200).send(
+                Kit.serialize(kit)
+            )
 
         } catch (error) {
             console.error(error)
@@ -39,7 +41,9 @@ export class KitController extends ControllerBase {
     protected async getMany(req: Request, res: Response){
         try {
             let kits:Array<Kit> = await Kit.getAll(Kit)
-            res.status(200).send(kits)
+            res.status(200).send(
+                kits.map(k=> Kit.serialize(k))
+            )
 
         } catch (error) {
             console.error(error)
@@ -55,7 +59,9 @@ export class KitController extends ControllerBase {
 
         try {
             let kit:Kit = await Kit.getByEntityId(Kit, id, state)
-            res.status(200).send(kit)
+            res.status(200).send(
+                Kit.serialize(kit)
+            )
 
         } catch (error) {
             console.error(error)
@@ -83,7 +89,9 @@ export class KitController extends ControllerBase {
             let kit:Kit = await Kit.updateVersion(Kit, req.body, state)
             kit === undefined ? 
                 res.sendStatus(404) : 
-                res.status(200).send(kit)
+                res.status(200).send(
+                    Kit.serialize(kit)
+                )
 
         } catch (error) {
             console.error(error)
@@ -114,10 +122,12 @@ export class KitController extends ControllerBase {
             // patch changes onto kit
             kit = Kit.patch(kit, req.body)
             
-            // apply changes to datastore
+            // apply changes to the Datastore
             await Kit.updateReplace(kit)
 
-            res.status(200).send(kit)
+            res.status(200).send(
+                Kit.serialize(kit)
+            )
 
         } catch (error) {
             console.error(error)
@@ -138,12 +148,12 @@ export class KitController extends ControllerBase {
 
 }
 
-@Controller()
-export class TestController extends ControllerBase {
+@API.Controller()
+export class TestController extends API.ControllerBase {
 
     constructor(
         @Injector.inject("express") protected express:Application,
-        @Injector.inject("KitController") protected parent:ControllerBase
+        @Injector.inject("KitController") protected parent:API.ControllerBase
     ){
         super(express, parent, "test")
     }

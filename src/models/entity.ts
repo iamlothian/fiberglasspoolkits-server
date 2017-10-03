@@ -1,48 +1,52 @@
 import "reflect-metadata"
 import * as uuid from 'uuid/v4'
 import * as Injector from 'typescript-injector-lite'
-import {Model, table, column, OrderByField, ORDER_BY_DIRECTION } from "../lib"
+import * as Lib from "../lib"
+//import {Lib.DTO.Model, table, Lib.DTO.column, OrderByField, ORDER_BY_DIRECTION, Queryable } from "../lib"
 import { DB, Query } from "../db"
 
 export enum ENTITY_STATE { HIDDEN, DRAFT, PUBLIC }
 
+
 /**
  * 
  */
-export abstract class Entity extends Model {
+export abstract class Entity extends Lib.DTO.Model {
 
-    @column()
+    @Lib.DTO.column()
     entityId: string = uuid()
 
-    @column()
+    @Lib.DTO.column()
     version: number = 1
 
-    @column()
+    @Lib.DTO.column({isPublic:false})
     createdAt: Date = new Date()
 
-    @column()
+    @Lib.DTO.column({isPublic:false})
     createdBy: string = "system"
 
-    @column()
+    @Lib.DTO.column({isPublic:false})
     updatedAt: Date = new Date()  
 
-    @column()
+    @Lib.DTO.column({isPublic:false})
     updatedBy: string = "system"
 
-    @column()
+    @Lib.DTO.column({isPublic:false})
     state: ENTITY_STATE = ENTITY_STATE.DRAFT
 
-    @column()
+    @Lib.DTO.column({isPublic:false})
     activateAt: Date = new Date()
 
-    @column()
+    @Lib.DTO.column({isPublic:false})
     deactivateAt: Date = undefined
 
-    @column({isRequired:true})
+    @Lib.DTO.column({isRequired:true})
     title: string = undefined
 
-    @column({isRequired:true})
+    @Lib.DTO.column({isRequired:true})
     description: string = undefined
+
+    private db:DB = Injector.instantiate('DB')
 
     protected constructor(){
         super()
@@ -54,12 +58,12 @@ export abstract class Entity extends Model {
      * @param json the object to try deserialized into the entity type
      */
     static async create<E extends Entity>(entityType: { new (): E; }, json:object): Promise<E> {
-        let entity:E = Entity.deserialize(entityType, json, "REQ"),
+        let entity:E = Entity.deserializeViewModel(entityType, json),
             query = Query.insert<E>(entity),
             db:DB = Injector.instantiate('DB'),
             result = await db.execute(query)
 
-        return await Model.deserialize(entityType, result.rows[0])
+        return await Lib.DTO.Model.deserializeTableRow(entityType, result.rows[0])
     }
 
     /**
@@ -69,7 +73,7 @@ export abstract class Entity extends Model {
      * @param state the state of the active version to update
      */
     static async updateVersion<E extends Entity>(entityType: { new (): E; }, json:object, state:ENTITY_STATE=ENTITY_STATE.PUBLIC): Promise<E> {
-        let newEntity:E = Entity.deserialize(entityType, json, "REQ"),
+        let newEntity:E = Entity.deserializeViewModel(entityType, json, true),
             versions:Array<E> = await Entity.getVersions(entityType, newEntity.entityId),
             now = new Date()
 
@@ -95,7 +99,7 @@ export abstract class Entity extends Model {
         currentVersion.deactivateAt = newEntity.activateAt
         await Entity.updateReplace(currentVersion)
 
-        return await Model.deserialize(entityType, result.rows[0])
+        return await Lib.DTO.Model.deserializeTableRow(entityType, result.rows[0])
     }
 
     /**
@@ -129,14 +133,14 @@ export abstract class Entity extends Model {
                     .and(
                         e=>e.column('deactivateAt').isNull()
                         .or(e=>e.column('deactivateAt').gte(now)))
-                    .orderBy([new OrderByField('activateAt', ORDER_BY_DIRECTION.DESC) ])
+                    .orderBy([new Lib.Query.OrderByField('activateAt', Lib.Query.ORDER_BY_DIRECTION.DESC) ])
                     .limit(1),
 
             db:DB = Injector.instantiate('DB'),
             result = await db.execute(query)
 
         return await result.rowCount !== 0 ? 
-            Model.deserialize(entityType, result.rows[0]) :
+            Lib.DTO.Model.deserializeTableRow(entityType, result.rows[0]) :
             undefined
     }
     /**
@@ -153,7 +157,7 @@ export abstract class Entity extends Model {
             result = await db.execute(query)
             
         return await result.rowCount !== 0 ? 
-            Model.deserialize(entityType, result.rows[0]) :
+            Lib.DTO.Model.deserializeTableRow(entityType, result.rows[0]) :
             undefined
     }
     /**
@@ -166,7 +170,7 @@ export abstract class Entity extends Model {
 
         result = await db.execute(query)
         
-        return await result.rows.map(row=>Model.deserialize(entityType, row))
+        return await result.rows.map(row=>Lib.DTO.Model.deserializeTableRow(entityType, row))
     }
     /**
      * 
@@ -176,11 +180,11 @@ export abstract class Entity extends Model {
     static async getVersions<E extends Entity>(entityType: { new (): E; }, entityId: string): Promise<Array<E>> {
         let query = Query.select(entityType)
                     .where(e=>e.column('entityId').equals(entityId))
-                    .orderBy([new OrderByField('version', ORDER_BY_DIRECTION.DESC) ]),
+                    .orderBy([new Lib.Query.OrderByField('version', Lib.Query.ORDER_BY_DIRECTION.DESC) ]),
 
         db:DB = Injector.instantiate('DB'),
         result = await db.execute(query)
         
-        return await result.rows.map(row=>Model.deserialize(entityType, row))
+        return await result.rows.map(row=>Lib.DTO.Model.deserializeTableRow(entityType, row))
     }
 }
