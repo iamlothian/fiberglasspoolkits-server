@@ -25,7 +25,7 @@
     "start": "node ./dist/index.js",
     "debug": "node --inspect=49559 --debug-brk ./dist/index.js",
     "build": "tsc -w",
-    "docker:postgres": "docker run -d -p 5432:5432 --name postgres --env-file ./db/.env postgres",
+    "docker:postgres": "docker run -d -p 5432:5432 --name postgres --env-file .env postgres",
     "docker:postgres:init": "docker exec -i postgres psql -U fpkdb fpkdb -e < ./db/init.sql",
     "docker:postgres:start": "docker restart postgres",
     "docker:postgres:stop": "docker stop postgres",

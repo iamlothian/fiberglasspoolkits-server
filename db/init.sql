@@ -3,7 +3,7 @@ DROP TABLE kit;
 CREATE TABLE IF NOT EXISTS kit (
     id                  serial      CONSTRAINT id_pk PRIMARY KEY,
     entity_id           uuid        NOT NULL,
-    version             NUMERIC(1)  NOT NULL,
+    version             smallint  NOT NULL,
     created_at          timestamp   NOT NULL,
     created_by          varchar(60) NOT NULL,
     updated_at          timestamp   NOT NULL,
@@ -15,17 +15,12 @@ CREATE TABLE IF NOT EXISTS kit (
     description         varchar(255)    NOT NULL
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS index_id
-    ON public.kit USING btree
-    (id ASC NULLS LAST)
-    TABLESPACE pg_default;
+-- CREATE INDEX IF NOT EXISTS entity_id
+--     ON public.kit USING btree
+--     (entity_id ASC NULLS LAST)
+--     TABLESPACE pg_default;
 
-CREATE INDEX IF NOT EXISTS entity_id
-    ON public.kit USING btree
-    (entity_id ASC NULLS LAST)
-    TABLESPACE pg_default;
-
-CREATE INDEX IF NOT EXISTS index_activate_at
-    ON public.kit USING btree
-    (activate_at DESC NULLS LAST)
-    TABLESPACE pg_default;
+-- CREATE INDEX IF NOT EXISTS index_activate_at
+--     ON public.kit USING btree
+--     (activate_at DESC NULLS LAST)
+--     TABLESPACE pg_default;

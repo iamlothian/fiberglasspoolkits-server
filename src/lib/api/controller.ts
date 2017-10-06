@@ -21,7 +21,7 @@ export function Controller(key?:string){
  * 
  */
 export function bootstrap(appServiceKey:string = 'App'):void{
-    console.log('======= bootstrap =======')
+    console.log('======= bootstrap Controllers =======')
     Injector.instantiate(appServiceKey)
     controllers.forEach(c=>{
         let inst:ControllerBase = Injector.instantiate(c)

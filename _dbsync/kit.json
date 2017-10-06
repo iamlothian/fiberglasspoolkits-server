@@ -1,0 +1,84 @@
+[
+	{
+		"createdAt": "2017-10-06T03:32:09.953Z",
+		"columns": [
+			{
+				"name": "id",
+				"isReadOnly": true,
+				"isPrivate": true,
+				"dbType": "serial",
+				"dbIsPrimaryKey": true,
+				"property": "_id"
+			},
+			{
+				"dbType": "uuid",
+				"name": "entity_id",
+				"property": "entityId"
+			},
+			{
+				"dbType": "smallint",
+				"name": "version",
+				"property": "version"
+			},
+			{
+				"dbType": "timestamp",
+				"isPrivate": true,
+				"name": "created_at",
+				"property": "createdAt"
+			},
+			{
+				"dbType": "varchar",
+				"maxLength": 60,
+				"isPrivate": true,
+				"name": "created_by",
+				"property": "createdBy"
+			},
+			{
+				"dbType": "timestamp",
+				"name": "updated_at",
+				"property": "updatedAt"
+			},
+			{
+				"dbType": "varchar",
+				"maxLength": 60,
+				"isPrivate": true,
+				"name": "updated_by",
+				"property": "updatedBy"
+			},
+			{
+				"dbType": "smallint",
+				"isPrivate": true,
+				"name": "state",
+				"property": "state"
+			},
+			{
+				"dbType": "timestamp",
+				"isPrivate": true,
+				"name": "activate_at",
+				"property": "activateAt"
+			},
+			{
+				"dbType": "timestamp",
+				"isPrivate": true,
+				"dbNotNull": true,
+				"name": "deactivate_at",
+				"property": "deactivateAt"
+			},
+			{
+				"dbType": "varchar",
+				"maxLength": 60,
+				"isRequired": true,
+				"name": "title",
+				"property": "title"
+			},
+			{
+				"dbType": "varchar",
+				"maxLength": 256,
+				"isRequired": true,
+				"name": "description",
+				"property": "description"
+			}
+		],
+		"removed": []
+	}
+]

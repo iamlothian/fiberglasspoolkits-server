@@ -21,15 +21,13 @@ export interface Driver {
     /**
      * 
      */
-    prepare<T extends Model>(queryFn:(...any) => Queryable<T>, paramFn:(...any) => Array<any>): PrepareableQuery
+    prepare<T extends Model>(query:Queryable<T>): PrepareableQuery
 
 }
 
 
 export interface PrepareableQuery {
 
-
-
-    execute() : Promise<any>
+    execute(withValues?:Array<any>) : Promise<any>
 
 }

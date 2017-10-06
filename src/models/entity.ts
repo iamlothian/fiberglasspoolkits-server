@@ -6,43 +6,42 @@ import { Query } from '../lib/drivers/psql'
 
 export enum ENTITY_STATE { HIDDEN, DRAFT, PUBLIC }
 
-
 /**
  * 
  */
 export abstract class Entity extends DTO.Model {
 
-    @DTO.column()
+    @DTO.column({dbType:'uuid'})
     entityId: string = uuid()
 
-    @DTO.column()
+    @DTO.column({dbType:'smallint'})
     version: number = 1
 
-    @DTO.column({isPublic:false})
+    @DTO.column({dbType:'timestamp', isPrivate:true})
     createdAt: Date = new Date()
 
-    @DTO.column({isPublic:false})
+    @DTO.column({dbType:'varchar', maxLength:60, isPrivate:true})
     createdBy: string = "system"
 
-    @DTO.column({isPublic:false})
+    @DTO.column({dbType:'timestamp' })
     updatedAt: Date = new Date()  
 
-    @DTO.column({isPublic:false})
+    @DTO.column({dbType:'varchar', maxLength:60, isPrivate:true})
     updatedBy: string = "system"
 
-    @DTO.column({isPublic:false})
+    @DTO.column({dbType:'smallint', isPrivate:true})
     state: ENTITY_STATE = ENTITY_STATE.DRAFT
 
-    @DTO.column({isPublic:false})
+    @DTO.column({dbType:'timestamp', isPrivate:true})
     activateAt: Date = new Date()
 
-    @DTO.column({isPublic:false})
+    @DTO.column({dbType:'timestamp', isPrivate:true, dbNotNull:true})
     deactivateAt: Date = undefined
 
-    @DTO.column({isRequired:true})
+    @DTO.column({dbType:'varchar', maxLength:60, isRequired:true})
     title: string = undefined
 
-    @DTO.column({isRequired:true})
+    @DTO.column({dbType:'varchar', maxLength:256, isRequired:true})
     description: string = undefined
 
     protected constructor(){

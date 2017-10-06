@@ -1,21 +1,23 @@
 import { Pool, Client, QueryResult }  from 'pg'
 import { Datastore, Queryable, DTO } from '../../orm'
 
+
+
 /**
  * An implementation of the Datastore interface which communicates with a posgres database
  */
 export class Driver implements Datastore.Driver {
-
-    static connectionString:string =  process.env.CONNECTION_STRING || 'postgresql://fpkdb:p001z4l!f3@localhost:5432/fpkdb'
 
     /**
      * 
      * @param pool create an internal connection pool or pass one in.
      */
     constructor(
-        public pool = new Pool({ connectionString:Driver.connectionString })
+        private connectionString:string,
+        public name = "Database",
+        private pool = new Pool({ connectionString:connectionString })
     ){
-        console.log("DB Connected")
+        console.log(this.name+" connected established")
         pool.on('error', this.onError)
     }
 
@@ -25,7 +27,7 @@ export class Driver implements Datastore.Driver {
      * @param client 
      */
     private onError(err, client) {
-        console.error('Unexpected error on idle client', err)
+        console.error('Encountered an error on '+this.name, err)
     }
 
     /**
@@ -67,36 +69,40 @@ export class Driver implements Datastore.Driver {
      * 
      * @param queryPart 
      */
-    prepare<T extends DTO.Model>(queryFn:(...any) => Queryable.Queryable<T>): Datastore.PrepareableQuery {
+    prepare<T extends DTO.Model>(query:Queryable.Queryable<T>): PreparedQuery {
         
-        // let queryText = "",
-        // values = new Array<any>()
+        let queryText = "",
+        values = new Array<any>()
 
-        // query.getQueryStack().forEach(v => {
-        //     let vlength = values.length
-        //     queryText += ' '+v.bake(vlength)
-        //     values.push(v.values)
-        // })
-        
+        query.getQueryStack().forEach(v => {
+            let vlength = values.length
+            queryText += ' '+v.bake(vlength)
+            if (v.values.length > 0){
+                values.push(v.values.length === 1 ? v.values[0] : v.values)
+            }
+            
+        })
 
-        return new PreparedQuery<T>(this, "", [])
+        return new PreparedQuery(this, queryText, values)
+    }
+
+    async end(): Promise<void> {
+        await this.pool.end()
+        console.log(this.name+" connection ended")
     }
 
 }
 
-class PreparedQuery<T extends DTO.Model> implements Datastore.PrepareableQuery {
+export class PreparedQuery implements Datastore.PrepareableQuery {
 
     constructor(
         private db:Driver, 
         private queryText:string, 
         private defaultValues:Array<any>
-    ){
-        
-    }
+    ){}
 
-    execute(): Promise<QueryResult> {
-
-        return this.db.query(this.queryText, this.defaultValues)
+    execute(withValues:Array<any> = undefined): Promise<QueryResult> {
+        return this.db.query(this.queryText, withValues || this.defaultValues)
     }
 
 }

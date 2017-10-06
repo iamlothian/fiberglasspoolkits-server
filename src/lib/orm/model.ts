@@ -1,42 +1,39 @@
 import "reflect-metadata"
 import * as Injector from 'typescript-injector-lite'
+import { Driver } from './driver'
 
 const TableMetadataKey = Symbol("design:tableName")
 const columnMetadataKey = Symbol("design:column")
 
 export interface Column {
-    /**
-     * The name of the column to be used in the Datastore
-     */
+    /** The name of the column to be used in the Datastore, used in queries and table deserialization. DEFAULT: property in underscore case */
     name?:string
-    /**
-     * The name of the property on the model class (Automatically populated)
-     */
+    /** The name of the property on the model class. Used for view model deserialization. DEFAULT: class property name */
     property?:string
-    /**
-     * The value of the model class property at the time the columns metadata is requested
-     */
+    /** The value of the model class property at the time the columns metadata is requested */
     value?:any
-    /**
-     * The data typescript type of the model class property
-     */
+    /** The data typescript type of the model class property. DEFAULT: typescript type script property type */
     type?:string
-    /**
-     * The optional datatype of the column in the Datastore
-     */
-    dbType?:string
-    /**
-     * Specify that a column should not be writable to the Datastore. For example an automatic ID or default value.
-     */
+    /** Specify that a column should not be writable to the Datastore. For example an automatic ID or default value. DEFAULT: false */
     isReadOnly?:boolean
-    /**
-     * Specify the a column must be present when attempting to deserialize the Model instance
-     */
+    /** Specify the a column must be present when attempting to deserialize the Model instance: DEFAULT: false */
     isRequired?:boolean
-    /**
-     * Specify that a column must not be presented when the Model is serialized
-     */
-    isPublic?:boolean
+    /** Specify that a column must not be presented when the Model is serialized: DEFAULT: false */
+    isPrivate?:boolean
+    /** The datatype of the column in the Datastore, required for datastore model version sync */
+    dbType:string
+    /** The max length of the dbType and property value if required */
+    maxLength?:number
+    /** The min length of the property value if required */
+    minLength?:number
+    /** Can the Datastore column accept null values? DEFAULT: false */
+    dbNotNull?:boolean
+    /** Is this column the primary key of the table, not you can only have one primary key. DEFAULT: false */
+    dbIsPrimaryKey?:boolean
+    /** Is the column required to contain only unique values. DEFAULT: false */
+    dbIsUnique?:boolean
+    /** Is the column indexed, true or specify a sort order. DEFAULT: false */
+    dbIsIndexed?:boolean|"ASC"|"DESC"
 }
 
 /**
@@ -45,7 +42,13 @@ export interface Column {
  */
 export abstract class Model {
     
-    @column({name:"id", isReadOnly:true, dbType:'serial', isPublic:false})
+    @column({
+        name:"id", 
+        isReadOnly:true, 
+        isPrivate:true,
+        dbType:'serial', 
+        dbIsPrimaryKey:true
+    })
     /**
      * This private _id is designed to only allow deserialize models from the Datastore to provide
      */
@@ -144,7 +147,7 @@ export abstract class Model {
     static serialize<T extends Model>(model: T): object {
         let viewModel = {}
         model.columns
-            .filter(c => c.isPublic)
+            .filter(c => c.isPrivate)
             .forEach(c => viewModel[c.property] = c.value )
         return viewModel
     }
@@ -159,6 +162,16 @@ export abstract class Model {
  * Internal array of models
  */
 let models: Array<string> = new Array()
+
+export function bootstrap(db:Driver):Array<Model>{
+    console.log('======= bootstrap Models =======')
+    let modelList = new Array<Model>()
+    models.forEach(c=>{
+        let inst:Model = Injector.instantiate(c)
+        modelList.push(inst)
+    })
+    return modelList
+}
 
 /**
  * Helper method for automatic table column name conventions
@@ -200,8 +213,7 @@ export function getTableName(target: any): string {
  * annotation for adding column metadata to a model property
  * @param columnsName 
  */
-export function column({name,property,value,type,dbType,isReadOnly=false,isRequired=false,isPublic=true}:Column = {}): any {
-    var column:Column = {name,property,value,type,dbType,isReadOnly,isRequired,isPublic}
+export function column(column: Column): any {
     return (target, propertyKey) => {
         column.name = column.name || toUnderscoreCase(propertyKey)
         column.property = propertyKey

@@ -8,6 +8,7 @@
             "env": {
                 "DEBUG":"typescript-injector-light"
             },
+            "envFile": "${workspaceRoot}/.env",
             "program": "${workspaceRoot}/dist/index",
             "sourceMaps": true,
             "outFiles": [

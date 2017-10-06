@@ -4,14 +4,16 @@ import * as express  from 'express'
 import * as bodyParser from 'body-parser'
 import * as Injector from 'typescript-injector-lite'
 import {API, Drivers} from './lib'
-
+import {RO_DB,RW_DB} from './dbinit'
 
 // Import controllers entry point
 import './controllers'
 
+// add the db connections pools to the container
+Injector.importValue("DB", RW_DB)
+Injector.importValue("DBro", RO_DB)
+// add express to the container
 Injector.importValue("express", express())
-// register posgresql driver as DB
-Injector.importValue("DB", new Drivers.Postgres.Driver())
 
 @Injector.service()
 class App {
