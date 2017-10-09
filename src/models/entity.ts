@@ -11,22 +11,22 @@ export enum ENTITY_STATE { HIDDEN, DRAFT, PUBLIC }
  */
 export abstract class Entity extends DTO.Model {
 
-    @DTO.column({dbType:'uuid'})
+    @DTO.column({dbType:'uuid', isPrivate:true})
     entityId: string = uuid()
 
-    @DTO.column({dbType:'smallint'})
+    @DTO.column({dbType:'smallint', isPrivate:true})
     version: number = 1
 
     @DTO.column({dbType:'timestamp', isPrivate:true})
     createdAt: Date = new Date()
 
-    @DTO.column({dbType:'varchar', maxLength:60, isPrivate:true})
+    @DTO.column({dbType:'varchar(60)', maxLength:60, isPrivate:true})
     createdBy: string = "system"
 
     @DTO.column({dbType:'timestamp' })
     updatedAt: Date = new Date()  
 
-    @DTO.column({dbType:'varchar', maxLength:60, isPrivate:true})
+    @DTO.column({dbType:'varchar(60)', maxLength:60, isPrivate:true})
     updatedBy: string = "system"
 
     @DTO.column({dbType:'smallint', isPrivate:true})
@@ -35,13 +35,13 @@ export abstract class Entity extends DTO.Model {
     @DTO.column({dbType:'timestamp', isPrivate:true})
     activateAt: Date = new Date()
 
-    @DTO.column({dbType:'timestamp', isPrivate:true, dbNotNull:true})
+    @DTO.column({dbType:'timestamp', dbNotNull:true})
     deactivateAt: Date = undefined
 
-    @DTO.column({dbType:'varchar', maxLength:60, isRequired:true})
+    @DTO.column({dbType:'varchar(60)', maxLength:60, isRequired:true})
     title: string = undefined
 
-    @DTO.column({dbType:'varchar', maxLength:256, isRequired:true})
+    @DTO.column({dbType:'varchar(256)', maxLength:256, isRequired:true})
     description: string = undefined
 
     protected constructor(){

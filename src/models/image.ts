@@ -5,14 +5,13 @@ import { Item } from "./item"
 import { ItemCategory } from "./itemCategory"
 
 @table()
-export class Kit extends Entity {
+export class Image extends Entity {
 
-    // @column({dbType:'varchar', maxLength:60})
-    // food:string = 'bar'
+    filename:string
+    extension:string
 
-    categories:Array<ItemCategory>
-
-    items:Array<Item>
+    height:number
+    width:number
 
     constructor(){
         super()

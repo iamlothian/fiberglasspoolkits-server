@@ -3,29 +3,62 @@
 import * as Injector from 'typescript-injector-lite'
 import { Router, Request, Response, Application } from 'express' 
 import { API, ORM } from '../lib'
-import { Kit, ENTITY_STATE } from '../models'
+import { Item, ENTITY_STATE } from '../models'
+import { ItemCategoryController } from '../controllers'
 
 
 
 @API.Controller()
-export class KitController extends API.ControllerBase {
+export class AdminItemController extends API.ControllerBase {
 
     constructor(
         @Injector.inject("express") protected express:Application
     ){
-        super(express, undefined, "kit")
+        super(express, undefined, "item")
     }
 
-    protected async post(req: Request, res: Response){  
+    protected async getMany(req: Request, res: Response){
+        try {
+            let kits:Array<Item> = await Item.getAll(Item)
+            res.status(200).send(
+                kits.map(k=> Item.serialize(k))
+            )
+
+        } catch (error) {
+            console.error(error)
+            res.status(400).send({
+                errors:[error.message]
+            })
+        }
+    }
+
+}
+
+@API.Controller()
+export class ItemController extends API.ControllerBase {
+
+    constructor(
+        @Injector.inject("express") protected express:Application,
+        @Injector.inject("ItemCategoryController") protected parent:ItemCategoryController
+    ){
+        super(express, parent, "item")
+    }
+
+    protected async post(req: Request, res: Response){
+        
+        let { categoryId } = req.params
+        
         try {
 
             if (!req.body) { 
                 throw new Error("No request body found")
             }
 
-            let kit:Kit = await Kit.create(Kit, req.body)
+            (<Item>req.body).category = categoryId
+
+            let item:Item = await Item.create(Item, req.body)
             res.status(200).send(
-                Kit.serialize(kit)
+                Item.serialize(item)
             )
 
         } catch (error) {
@@ -37,10 +70,13 @@ export class KitController extends API.ControllerBase {
     }
 
     protected async getMany(req: Request, res: Response){
+
+        let { categoryId } = req.params
+
         try {
-            let kits:Array<Kit> = await Kit.getAll(Kit)
+            let kits:Array<Item> = await Item.getAll(Item)
             res.status(200).send(
-                kits.map(k=> Kit.serialize(k))
+                kits.map(k=> Item.serialize(k))
             )
 
         } catch (error) {
@@ -52,13 +88,13 @@ export class KitController extends API.ControllerBase {
     }
 
     protected async getOne(req: Request, res: Response){
-        let { [this.resourceRefName]:id } = req.params,
+        let { [this.resourceRefName]:id, categoryId } = req.params,
             { state } =  req.query
 
         try {
-            let kit:Kit = await Kit.getByEntityId(Kit, id, state)
+            let item:Item = await Item.getByEntityId(Item, id, state)
             res.status(200).send(
-                Kit.serialize(kit)
+                Item.serialize(item)
             )
 
         } catch (error) {
@@ -75,7 +111,7 @@ export class KitController extends API.ControllerBase {
      * @param res 
      */
     protected async patch(req: Request, res: Response){
-        let { [this.resourceRefName]:id } = req.params,
+        let { [this.resourceRefName]:id, categoryId } = req.params,
             { state } =  req.query
 
         try {
@@ -84,11 +120,11 @@ export class KitController extends API.ControllerBase {
                 throw new Error("No request body found")
             }
 
-            let kit:Kit = await Kit.updateVersion(Kit, req.body, state)
-            kit === undefined ? 
+            let item:Item = await Item.updateVersion(Item, req.body, state)
+            item === undefined ? 
                 res.sendStatus(404) : 
                 res.status(200).send(
-                    Kit.serialize(kit)
+                    Item.serialize(item)
                 )
 
         } catch (error) {
@@ -105,7 +141,7 @@ export class KitController extends API.ControllerBase {
      * @param res 
      */
     protected async put(req: Request, res: Response){
-        let { [this.resourceRefName]:id } = req.params,
+        let { [this.resourceRefName]:id, categoryId } = req.params,
             { state } =  req.query
 
         try {
@@ -114,17 +150,17 @@ export class KitController extends API.ControllerBase {
                 throw new Error("No request body found")
             }
 
-            // get active kit
-            let kit:Kit = await Kit.getByEntityId(Kit, id, state)
+            // get active item
+            let item:Item = await Item.getByEntityId(Item, id, state)
 
-            // patch changes onto kit
-            kit = Kit.patch(kit, req.body)
+            // patch changes onto item
+            item = Item.patch(item, req.body)
             
             // apply changes to the Datastore
-            await Kit.updateReplace(kit)
+            await Item.updateReplace(item)
 
             res.status(200).send(
-                Kit.serialize(kit)
+                Item.serialize(item)
             )
 
         } catch (error) {
@@ -137,9 +173,9 @@ export class KitController extends API.ControllerBase {
     protected async delete(req: Request, res: Response){
         // let { [this.resourceRefName]:id } = req.params
 
-        // let query = Query.delete(Kit).where(kit => kit.column('id').equals(id))
+        // let query = Query.delete(Item).where(item => item.column('id').equals(id))
         
-        // let kits:Array<Kit> = await this.db.execute(Kit, query);
+        // let kits:Array<Item> = await this.db.execute(Item, query);
 
         // res.status(204).send(kits)
     }

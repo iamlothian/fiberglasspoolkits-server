@@ -1,5 +1,5 @@
 import { Pool, Client, QueryResult }  from 'pg'
-import { Datastore, Queryable, DTO } from '../../orm'
+import { Datastore, Queryable, DTO, Sync } from '../../orm'
 
 
 
@@ -57,33 +57,12 @@ export class Driver implements Datastore.Driver {
             let vlength = values.length
             queryText += ' '+v.bake(vlength)
             if (v.values.length > 0){
-                values.push(v.values.length === 1 ? v.values[0] : v.values)
+                values = values.concat(v.values)
             }
             
         })
 
         return await this.query(queryText, values)
-    }
-
-    /**
-     * 
-     * @param queryPart 
-     */
-    prepare<T extends DTO.Model>(query:Queryable.Queryable<T>): PreparedQuery {
-        
-        let queryText = "",
-        values = new Array<any>()
-
-        query.getQueryStack().forEach(v => {
-            let vlength = values.length
-            queryText += ' '+v.bake(vlength)
-            if (v.values.length > 0){
-                values.push(v.values.length === 1 ? v.values[0] : v.values)
-            }
-            
-        })
-
-        return new PreparedQuery(this, queryText, values)
     }
 
     async end(): Promise<void> {
@@ -93,16 +72,35 @@ export class Driver implements Datastore.Driver {
 
 }
 
-export class PreparedQuery implements Datastore.PrepareableQuery {
 
-    constructor(
-        private db:Driver, 
-        private queryText:string, 
-        private defaultValues:Array<any>
-    ){}
+export class SyncDriver implements Datastore.SyncDriver {
+    
+    constructor(private db:Driver){}
 
-    execute(withValues:Array<any> = undefined): Promise<QueryResult> {
-        return this.db.query(this.queryText, withValues || this.defaultValues)
+    modelDeltaToQuery(modelDelta: Sync.ModelDelta): string {
+        
+        let script:string
+        if (modelDelta.hasDelta){
+
+            if (modelDelta.version === 1){   
+                script = `CREATE TABLE IF NOT EXISTS ${modelDelta.table} ()\n`
+            }
+
+            script = ''+
+                `CREATE TABLE IF NOT EXISTS ${modelDelta.table} (\n`+
+                    `${modelDelta.modified.map(c=>{
+                        let column = [c.name, c.dbType + (c.maxLength ? '('+c.maxLength+')' : '')]
+                            
+                        !c.dbNotNull && column.push('NOT NUL')
+                        c.dbIsPrimaryKey && column.push('CONSTRAINT '+c.name+'_pk PRIMARY KEY')
+
+                        return '\t'+column.join('\t')
+                    }).join(',\n')}`+
+                '\n);'
+        }
+            
+        return script
+
     }
-
+    
 }

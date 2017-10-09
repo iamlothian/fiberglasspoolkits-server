@@ -40,7 +40,7 @@ export class LessThanEqual extends Operand implements Queryable.LessThanEqualRec
     constructor( public table:string, column:DTO.Column, value:any) { super(table, column, value, '<=') }
 }
 export class In extends Operand implements Queryable.InRecipe {
-    constructor( public table:string, column:DTO.Column, values:Array<any>) { super(table, column, values, 'IN') }
+    constructor( public table:string, column:DTO.Column, values:Array<any>) { super(table, column, [values], 'IN') }
 }
 export class NotNull implements Queryable.NotNullRecipe {
     
@@ -139,7 +139,7 @@ export class Insert implements Queryable.InsertRecipe {
     values:Array<string> = new Array<string>()
 
     bake(valueCount:number):string {
-        return `INSERT INTO ${this.table} (${this.columns.join(',')}) VALUES (${this.columns.map(c=>'$'+(++valueCount)).join(',')}}) RETURNING *`
+        return `INSERT INTO ${this.table} (${this.columns.join(',')}) VALUES (${this.columns.map(c=>'$'+(++valueCount)).join(',')}) RETURNING *`
     }    
 
     constructor(

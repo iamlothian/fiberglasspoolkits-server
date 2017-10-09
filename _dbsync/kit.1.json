@@ -1,0 +1,9 @@
+[
+    {
+        "createdAt":"some date",
+        "ledger":[
+            [1,"kit"], 
+            [1,"kit",{"name":"id", "dbType":"serial", "dbIsPrimaryKey":true}]
+        ]
+    }
+]

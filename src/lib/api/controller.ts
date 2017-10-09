@@ -42,7 +42,7 @@ export abstract class ControllerBase {
         protected app:Application,
         protected parent:ControllerBase,
         protected resourceName:string,
-        protected resourceRefName:string = 'id',
+        protected resourceRefName:string = resourceName+'Id',
     ){
         this.path = '/'+this.resourceName
         this.pathRef = this.path+'/:'+this.resourceRefName

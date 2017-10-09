@@ -1,5 +1,6 @@
 import { Model, Column } from './model'
 import { Queryable } from './query'
+import { ModelDelta } from './modelSync'
 
 /**
  * a generic class which can run queries on a database
@@ -18,16 +19,10 @@ export interface Driver {
      */
     execute<T extends Model>(query:Queryable<T>) : Promise<any>
 
-    /**
-     * 
-     */
-    prepare<T extends Model>(query:Queryable<T>): PrepareableQuery
-
 }
 
+export interface SyncDriver {
 
-export interface PrepareableQuery {
-
-    execute(withValues?:Array<any>) : Promise<any>
+    modelDeltaToQuery(modelDelta: ModelDelta): any
 
 }
