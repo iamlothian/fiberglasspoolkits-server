@@ -1,17 +1,25 @@
 import "reflect-metadata"
 import * as uuid from 'uuid/v4'
 import * as Injector from 'typescript-injector-lite'
-import { DTO, Datastore } from "../lib/orm"
-import { Query } from '../lib/drivers/psql'
+import * as API from "../lib/api"
+import { DTO, Datastore, Queryable } from "../lib/orm"
+import { Query, QueryColumn } from '../lib/drivers/psql'
 
 export enum ENTITY_STATE { HIDDEN, DRAFT, PUBLIC }
+
+interface searchQuery<M extends DTO.Model> {
+
+    pageSize:number
+    page:number
+
+}
 
 /**
  * 
  */
 export abstract class Entity extends DTO.Model {
 
-    @DTO.column({dbType:'uuid', isPrivate:true})
+    @DTO.column({dbType:'uuid', isProtected:true})
     entityId: string = uuid()
 
     @DTO.column({dbType:'smallint', isPrivate:true})
@@ -54,8 +62,16 @@ export abstract class Entity extends DTO.Model {
      * @param json the object to try deserialized into the entity type
      */
     static async create<E extends Entity>(entityType: { new (): E; }, json:object): Promise<E> {
-        let entity:E = Entity.deserializeViewModel(entityType, json),
-            query = Query.insert<E>(entity),
+
+        let entity:E 
+        
+        try {
+            entity = Entity.deserializeViewModel(entityType, json)
+        } catch (error) {
+            throw new API.BadRequest(error.message)
+        }
+
+        let query = Query.insert<E>(entity),
             db:Datastore.Driver = Injector.instantiate('DB'),
             result = await db.execute(query)
 
@@ -69,8 +85,15 @@ export abstract class Entity extends DTO.Model {
      * @param state the state of the active version to update
      */
     static async updateVersion<E extends Entity>(entityType: { new (): E; }, json:object, state:ENTITY_STATE=ENTITY_STATE.PUBLIC): Promise<E> {
-        let newEntity:E = Entity.deserializeViewModel(entityType, json, true),
-            versions:Array<E> = await Entity.getVersions(entityType, newEntity.entityId),
+        let newEntity
+
+        try {
+            newEntity = Entity.deserializeViewModel(entityType, json, true)
+        } catch (error) {
+            throw new API.BadRequest(error.message)
+        }
+
+        let versions:Array<E> = await Entity.getVersions(entityType, newEntity.entityId),
             now = new Date()
 
         if (versions.length === 0){
@@ -105,13 +128,27 @@ export abstract class Entity extends DTO.Model {
     static async updateReplace<E extends Entity>(entity:E): Promise<E> {
 
         let query = Query.update<E>(entity)
-                    .where(e=>e.column('_id').equals(entity.id)),
+                    .where(e=>e.column('id').equals(entity.id)),
 
             db:Datastore.Driver = Injector.instantiate('DB'),
             result = await db.execute(query)
 
         return await entity
     }
+    
+    /**
+     * get a rows of a entity from the Datastore, allows a custom query condition to be supplied
+     * @param entityType the constructor of the entity to use for deserialize
+     */
+    static async getAll<E extends Entity>(entityType: { new (): E; }, where:(query:Queryable.Queryable<E>) => Queryable.Queryable<E> = q=>q) : Promise<Array<E>> {
+        let query = where(Query.select(entityType)),
+        db:Datastore.Driver = Injector.instantiate('DB'),
+
+        result = await db.execute(query)
+        
+        return await result.rows.map(row=>DTO.Model.deserializeTableRow(entityType, row))
+    }
+
     /**
      * get the current active versions of an entity in the Datastore
      * @param entityType the constructor of the entity to use for deserialize
@@ -147,7 +184,7 @@ export abstract class Entity extends DTO.Model {
      */
     static async getByRowID<E extends Entity>(entityType: { new (): E; }, id:number): Promise<E> {
         let query = Query.select(entityType).where(
-                e=>e.column('_id').equals(id)
+                e=>e.column('id').equals(id)
             ),
 
             db:Datastore.Driver = Injector.instantiate('DB'),
@@ -156,18 +193,6 @@ export abstract class Entity extends DTO.Model {
         return await result.rowCount !== 0 ? 
             DTO.Model.deserializeTableRow(entityType, result.rows[0]) :
             undefined
-    }
-    /**
-     * get a rows of a entity from the Datastore
-     * @param entityType the constructor of the entity to use for deserialize
-     */
-    static async getAll<E extends Entity>(entityType: { new (): E; }): Promise<Array<E>> {
-        let query = Query.select(entityType),
-        db:Datastore.Driver = Injector.instantiate('DB'),
-
-        result = await db.execute(query)
-        
-        return await result.rows.map(row=>DTO.Model.deserializeTableRow(entityType, row))
     }
     /**
      * 

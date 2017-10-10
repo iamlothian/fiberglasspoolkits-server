@@ -204,6 +204,24 @@ export class Limit implements Queryable.LimitRecipe {
     }
     
 }
+export class Page implements Queryable.LimitRecipe {
+    
+    table:string = ""
+    columns:Array<string> = new Array<string>()
+    values:Array<string> = new Array<string>()
+
+    bake(valueCount:number):string {
+        return `LIMIT $${++valueCount}`
+    }    
+
+    constructor(
+        private limit:number,
+        private offset:number,
+    ){
+        this.values.push(limit.toFixed(), offset.toFixed())
+    }
+    
+}
 
 export class Token implements Queryable.TokenRecipe {
     table:string = ""

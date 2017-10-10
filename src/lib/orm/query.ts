@@ -34,41 +34,41 @@ export interface AndRecipe extends TokenRecipe {}
 export interface OrRecipe extends TokenRecipe {}
 
 
-export interface ColumnSelection {
-    column(columnName: string): OperandsSelection
+export interface ColumnSelection<M extends Model> {
+    column(columnName: keyof M): OperandsSelection<M>
 }
 
-export interface OperandsSelection {
-    equals(value: string | number): TerminatorSelection
-    notEqals(value: string | number): TerminatorSelection
-    gt(value: string | number): TerminatorSelection
-    gte(value: string | number): TerminatorSelection
-    lt(value: string | number): TerminatorSelection
-    lte(value: string | number): TerminatorSelection
-    in(values: Array<string | number>): TerminatorSelection
-    notNull(): TerminatorSelection
-    isNull(): TerminatorSelection
+export interface OperandsSelection<M extends Model> {
+    equals(value: string | number): TerminatorSelection<M>
+    notEqals(value: string | number): TerminatorSelection<M>
+    gt(value: string | number): TerminatorSelection<M>
+    gte(value: string | number): TerminatorSelection<M>
+    lt(value: string | number): TerminatorSelection<M>
+    lte(value: string | number): TerminatorSelection<M>
+    in(values: Array<string | number>): TerminatorSelection<M>
+    notNull(): TerminatorSelection<M>
+    isNull(): TerminatorSelection<M>
 }
 
 
-export interface TerminatorSelection {
-    and(conditionFunction: (table: ColumnSelection) => TerminatorSelection)
-    or(conditionFunction: (table: ColumnSelection) => TerminatorSelection)
+export interface TerminatorSelection<M extends Model> {
+    and(conditionFunction: (table: ColumnSelection<M>) => TerminatorSelection<M>)
+    or(conditionFunction: (table: ColumnSelection<M>) => TerminatorSelection<M>)
     getStack(): Array<QueryRecipe>
 }
 
 
-export interface Queryable<T extends Model>{
-    where(conditionFunction:(table:ColumnSelection) => TerminatorSelection): Queryable<T>
-    and(conditionFunction:(table:ColumnSelection) => TerminatorSelection): Queryable<T>
-    or(conditionFunction:(table:ColumnSelection) => TerminatorSelection): Queryable<T>
-    not(conditionFunction:(table:ColumnSelection) => TerminatorSelection): Queryable<T>
-    orderBy(...args:any[]): Queryable<T>
-    limit(limit:number): Queryable<T>
+export interface Queryable<M extends Model>{
+    where(conditionFunction:(table:ColumnSelection<M>) => TerminatorSelection<M>): Queryable<M>
+    and(conditionFunction:(table:ColumnSelection<M>) => TerminatorSelection<M>): Queryable<M>
+    or(conditionFunction:(table:ColumnSelection<M>) => TerminatorSelection<M>): Queryable<M>
+    not(conditionFunction:(table:ColumnSelection<M>) => TerminatorSelection<M>): Queryable<M>
+    orderBy(...args:any[]): Queryable<M>
+    limit(limit:number): Queryable<M>
     getQueryStack():Array<QueryRecipe>
 }
 
-export abstract class Queryable<T extends Model> {
+export abstract class Queryable<M extends Model> {
 
     static select<T extends Model>(modelType: { new(): T; }): Queryable<T> { throw new Error("Method not implemented in child class."); }
     static count<T extends Model>(modelType: { new(): T; }): Queryable<T> { throw new Error("Method not implemented in child class."); }

@@ -20,7 +20,7 @@ export class ItemCategoryController extends API.ControllerBase {
         try {
 
             if (!req.body) { 
-                throw new Error("No request body found")
+                throw new API.BadRequest("No request body found")
             }
 
             let category:ItemCategory = await ItemCategory.create(ItemCategory, req.body)
@@ -30,7 +30,7 @@ export class ItemCategoryController extends API.ControllerBase {
 
         } catch (error) {
             console.error(error)
-            res.status(400).send({
+            res.status(error.statusCode || 500).send({
                 errors:[error.message]
             })
         }
@@ -45,7 +45,7 @@ export class ItemCategoryController extends API.ControllerBase {
 
         } catch (error) {
             console.error(error)
-            res.status(400).send({
+            res.status(error.statusCode || 500).send({
                 errors:[error.message]
             })
         }
@@ -63,7 +63,7 @@ export class ItemCategoryController extends API.ControllerBase {
 
         } catch (error) {
             console.error(error)
-            res.status(400).send({
+            res.status(error.statusCode || 500).send({
                 errors:[error.message]
             })
         }
@@ -81,7 +81,7 @@ export class ItemCategoryController extends API.ControllerBase {
         try {
 
             if (!req.body) { 
-                throw new Error("No request body found")
+                throw new API.BadRequest("No request body found")
             }
 
             let category:ItemCategory = await ItemCategory.updateVersion(ItemCategory, req.body, state)
@@ -93,7 +93,7 @@ export class ItemCategoryController extends API.ControllerBase {
 
         } catch (error) {
             console.error(error)
-            res.status(400).send({
+            res.status(error.statusCode || 500).send({
                 errors:[error.message]
             })
         }
@@ -111,7 +111,7 @@ export class ItemCategoryController extends API.ControllerBase {
         try {
 
             if (!req.body) { 
-                throw new Error("No request body found")
+                throw new API.BadRequest("No request body found")
             }
 
             // get active category
@@ -129,7 +129,7 @@ export class ItemCategoryController extends API.ControllerBase {
 
         } catch (error) {
             console.error(error)
-            res.status(400).send({
+            res.status(error.statusCode || 500).send({
                 errors:[error.message]
             })
         }

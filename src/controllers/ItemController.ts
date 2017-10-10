@@ -26,7 +26,7 @@ export class AdminItemController extends API.ControllerBase {
 
         } catch (error) {
             console.error(error)
-            res.status(400).send({
+            res.status(error.statusCode || 500).send({
                 errors:[error.message]
             })
         }
@@ -51,7 +51,7 @@ export class ItemController extends API.ControllerBase {
         try {
 
             if (!req.body) { 
-                throw new Error("No request body found")
+                throw new API.BadRequest("No request body found")
             }
 
             (<Item>req.body).category = categoryId
@@ -63,7 +63,7 @@ export class ItemController extends API.ControllerBase {
 
         } catch (error) {
             console.error(error)
-            res.status(400).send({
+            res.status(error.statusCode || 500).send({
                 errors:[error.message]
             })
         }
@@ -74,14 +74,14 @@ export class ItemController extends API.ControllerBase {
         let { categoryId } = req.params
 
         try {
-            let kits:Array<Item> = await Item.getAll(Item)
+            let kits:Array<Item> = await Item.getAll(Item, q=>q.where(c=>c.column("category").equals(categoryId)))
             res.status(200).send(
                 kits.map(k=> Item.serialize(k))
             )
 
         } catch (error) {
             console.error(error)
-            res.status(400).send({
+            res.status(error.statusCode || 500).send({
                 errors:[error.message]
             })
         }
@@ -93,13 +93,18 @@ export class ItemController extends API.ControllerBase {
 
         try {
             let item:Item = await Item.getByEntityId(Item, id, state)
+
+            if (item.category.id != categoryId){
+                throw new Error()
+            }
+
             res.status(200).send(
                 Item.serialize(item)
             )
 
         } catch (error) {
             console.error(error)
-            res.status(400).send({
+            res.status(error.statusCode || 500).send({
                 errors:[error.message]
             })
         }
@@ -117,7 +122,7 @@ export class ItemController extends API.ControllerBase {
         try {
 
             if (!req.body) { 
-                throw new Error("No request body found")
+                throw new API.BadRequest("No request body found")
             }
 
             let item:Item = await Item.updateVersion(Item, req.body, state)
@@ -129,7 +134,7 @@ export class ItemController extends API.ControllerBase {
 
         } catch (error) {
             console.error(error)
-            res.status(400).send({
+            res.status(error.statusCode || 500).send({
                 errors:[error.message]
             })
         }
@@ -147,7 +152,7 @@ export class ItemController extends API.ControllerBase {
         try {
 
             if (!req.body) { 
-                throw new Error("No request body found")
+                throw new API.BadRequest("No request body found")
             }
 
             // get active item
@@ -165,7 +170,7 @@ export class ItemController extends API.ControllerBase {
 
         } catch (error) {
             console.error(error)
-            res.status(400).send({
+            res.status(error.statusCode || 500).send({
                 errors:[error.message]
             })
         }

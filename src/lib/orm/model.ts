@@ -28,8 +28,10 @@ export interface Column extends DBColumn {
     value?:any
     /** The data typescript type of the model class property. DEFAULT: typescript type script property type */
     type?:string
-    /** Specify that a column should not be writable to the Datastore. For example an automatic ID or default value. DEFAULT: false */
+    /** Specify that a column should not be writeable to the Datastore. For example an automatic ID or default value. DEFAULT: false */
     isReadOnly?:boolean
+    /** Specify that a column can not be present in a entity request, likely because it is set by the constructor or datastore. DEFAULT: false */
+    isProtected?:boolean
     /** Specify the a column must be present when attempting to deserialize the Model instance: DEFAULT: false */
     isRequired?:boolean
     /** Specify that a column must not be presented when the Model is serialized: DEFAULT: false */
@@ -38,6 +40,10 @@ export interface Column extends DBColumn {
     minLength?:number
     /** The max length of the dbType and property value if required */
     maxLength?:number
+    /** The maximum value of a numeric field */
+    max?:number
+    /** The minimum value of a numeric field */
+    min?:number
 }
 
 /**
@@ -49,6 +55,7 @@ export abstract class Model {
     @column({
         name:"id", 
         isReadOnly:true, 
+        isProtected:true,
         isPrivate:true,
         dbType:'serial', 
         dbIsPrimaryKey:true
@@ -107,22 +114,32 @@ export abstract class Model {
      */
     static deserialize<T extends Model>(type: { new(): T; }, serializedModel: object, mode:'ROW'|'REQ', skipRequiredCheck:boolean = false): T {
         let inst: T = new type(),
-            missingProps = new Array<string>()
+            errors = new Array<string>()
+
+        if (mode === "ROW" && serializedModel['id'] === undefined){
+            throw new Error("- deserialize expects tableColumn to contain the property [id]")
+        }
 
         inst.columns.forEach(c => {
             if (!skipRequiredCheck && c.isRequired && serializedModel[c.name] == undefined){
-                missingProps.push(c.property)
+                errors.push('- Required property ['+c.property+'] of model ['+inst.tableName+'] not present in request')
             }
             if (mode === "ROW" && serializedModel[c.name] != undefined){
                 inst[c.property] = serializedModel[c.name]
             }
-            if (mode === "REQ" && serializedModel[c.property] != undefined){
-                inst[c.property] = serializedModel[c.property]
+            if (mode === "REQ") {
+                if (c.isProtected && serializedModel[c.property] != undefined){
+                    serializedModel[c.property] = undefined
+                    errors.push('- Protected properties ['+c.property+'] of model ['+inst.tableName+'] can not be present in request')
+                }
+                if (serializedModel[c.property] != undefined){
+                    inst[c.property] = serializedModel[c.property]
+                }
             }
         })
         
-        if (missingProps.length>0){
-            throw new Error('Required properties of model ['+inst.tableName+'] not present ['+missingProps.join(', ')+']')
+        if (errors.length>0){
+            throw new Error(errors.join('\n'))
         }
 
         return inst
@@ -154,10 +171,6 @@ export abstract class Model {
             .filter(c => !c.isPrivate)
             .forEach(c => viewModel[c.property] = c.value )
         return viewModel
-    }
-
-    serialize<T extends Model>(model: T): object {
-        return Model.serialize(model);
     }
 
 }
@@ -256,19 +269,19 @@ export function getColumns(target: any): Array<Column> {
     return columns
 }
 
-export function manyToOne(): any {
+export function manyToOne(joinColumn:string): any {
     return (target, propertyKey) => {
 
     }
 }
 
-function oneToMany(joinColumn:string): any {
+export function oneToMany(): any {
     return (target, propertyKey) => {
         
     }
 }
 
-function manyToMany(): any {
+export function manyToMany(): any {
     return (target, propertyKey) => {
         
     }

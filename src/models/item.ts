@@ -1,12 +1,13 @@
 import * as Injector from 'typescript-injector-lite'
-import { table, column } from '../lib/orm/model'
+import { table, column, manyToOne } from '../lib/orm/model'
 import { Entity } from "./entity"
 import { ItemCategory } from "./itemCategory"
 
 @table()
 export class Item extends Entity {
 
-    @column({dbType:'integer', isRequired:true})
+    @column({name:'category_id', dbType:'integer', isRequired:true})
+    @manyToOne("category_id")
     category: ItemCategory
 
     @column({dbType:'money'})

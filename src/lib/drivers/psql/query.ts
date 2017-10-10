@@ -4,15 +4,15 @@ import * as Recipes from './queryRecipes'
 /**
  * 
  */
-export class QueryColumn implements Queryable.ColumnSelection{
+export class QueryColumn<M extends DTO.Model> implements Queryable.ColumnSelection<M> {
     constructor(
-        private model: DTO.Model, 
+        private model: M, 
         private queryStack:Array<Queryable.QueryRecipe> = []
     ) {}
-    column(columnName:string): Queryable.OperandsSelection {
+    column(columnName: keyof M): Queryable.OperandsSelection<M> {
         let column:DTO.Column = this.model.columns.find((c) => c.property === columnName)
         if(column === undefined){
-            throw new Error('No property found matching:'+column)
+            throw new Error('No property found matching: '+columnName)
         }
         return new QueryOperand(
             column, 
@@ -25,45 +25,45 @@ export class QueryColumn implements Queryable.ColumnSelection{
 /**
  * 
  */
-export class QueryOperand implements Queryable.OperandsSelection {
+export class QueryOperand<M extends DTO.Model> implements Queryable.OperandsSelection<M> {
     constructor(
         private column:DTO.Column, 
         private model: DTO.Model, 
         private queryStack:Array<Queryable.QueryRecipe>
     ){}
-    equals(value: string | number): Queryable.TerminatorSelection {
+    equals(value: string | number): Queryable.TerminatorSelection<M> {
         this.queryStack.push( new Recipes.Equals(this.model.tableName, this.column, value))
         return new QueryTerminator(this.model, this.queryStack)
     }
-    notEqals(value: string | number): Queryable.TerminatorSelection {
+    notEqals(value: string | number): Queryable.TerminatorSelection<M> {
         this.queryStack.push( new Recipes.NotEquals(this.model.tableName, this.column, value))
         return new QueryTerminator(this.model, this.queryStack)
     }
-    gt(value: string | number): Queryable.TerminatorSelection {
+    gt(value: string | number): Queryable.TerminatorSelection<M> {
         this.queryStack.push( new Recipes.GreaterThan(this.model.tableName, this.column, value))
         return new QueryTerminator(this.model, this.queryStack)
     }
-    gte(value: string | number): Queryable.TerminatorSelection {
+    gte(value: string | number): Queryable.TerminatorSelection<M> {
         this.queryStack.push( new Recipes.GreaterThanEqual(this.model.tableName, this.column, value))
         return new QueryTerminator(this.model, this.queryStack)
     }
-    lt(value: string | number): Queryable.TerminatorSelection {
+    lt(value: string | number): Queryable.TerminatorSelection<M> {
         this.queryStack.push( new Recipes.LessThan(this.model.tableName, this.column, value))
         return new QueryTerminator(this.model, this.queryStack)
     }
-    lte(value: string | number): Queryable.TerminatorSelection {
+    lte(value: string | number): Queryable.TerminatorSelection<M> {
         this.queryStack.push( new Recipes.LessThanEqual(this.model.tableName, this.column, value))
         return new QueryTerminator(this.model, this.queryStack)
     }
-    in(values: (string | number)[]): Queryable.TerminatorSelection {
+    in(values: (string | number)[]): Queryable.TerminatorSelection<M> {
         this.queryStack.push( new Recipes.In(this.model.tableName, this.column, values))
         return new QueryTerminator(this.model, this.queryStack)
     }
-    notNull(): Queryable.TerminatorSelection {
+    notNull(): Queryable.TerminatorSelection<M> {
         this.queryStack.push( new Recipes.NotNull(this.model.tableName, this.column))
         return new QueryTerminator(this.model, this.queryStack)
     }
-    isNull(): Queryable.TerminatorSelection {
+    isNull(): Queryable.TerminatorSelection<M> {
         this.queryStack.push( new Recipes.IsNull(this.model.tableName, this.column))
         return new QueryTerminator(this.model, this.queryStack)
     }
@@ -72,19 +72,19 @@ export class QueryOperand implements Queryable.OperandsSelection {
 /**
  * 
  */
-export class QueryTerminator implements Queryable.TerminatorSelection {
+export class QueryTerminator<M extends DTO.Model> implements Queryable.TerminatorSelection<M> {
     
     constructor(
         private model: DTO.Model, 
         private queryStack:Array<Queryable.QueryRecipe> = [],
     ){}
-    and(conditionFunction:(table:Queryable.ColumnSelection) => Queryable.TerminatorSelection){
+    and(conditionFunction:(table:Queryable.ColumnSelection<M>) => Queryable.TerminatorSelection<M>){
         this.queryStack.push(new Recipes.And())
         return conditionFunction(
             new QueryColumn(this.model, this.queryStack)
         )
     }
-    or(conditionFunction:(table:Queryable.ColumnSelection) => Queryable.TerminatorSelection){
+    or(conditionFunction:(table:Queryable.ColumnSelection<M>) => Queryable.TerminatorSelection<M>){
         this.queryStack.push(new Recipes.Or())
         return conditionFunction(
             new QueryColumn(this.model, this.queryStack)
@@ -98,7 +98,7 @@ export class QueryTerminator implements Queryable.TerminatorSelection {
 /**
  * 
  */
-export class Query<T extends DTO.Model> extends Queryable.Queryable<T> implements Queryable.Queryable<T> {
+export class Query<M extends DTO.Model> extends Queryable.Queryable<M> implements Queryable.Queryable<M> {
 
     private constructor(
         protected model: DTO.Model,
@@ -169,19 +169,19 @@ export class Query<T extends DTO.Model> extends Queryable.Queryable<T> implement
         return new Query(modelInst, queryParts);
     }
     
-    where(conditionFunction:(table:Queryable.ColumnSelection) => Queryable.TerminatorSelection): Queryable.Queryable<T>{
+    where(conditionFunction:(table:Queryable.ColumnSelection<M>) => Queryable.TerminatorSelection<M>): Queryable.Queryable<M>{
         return this.condition('WHERE', conditionFunction)
     }
-    and(conditionFunction:(table:Queryable.ColumnSelection) => Queryable.TerminatorSelection): Queryable.Queryable<T>{
+    and(conditionFunction:(table:Queryable.ColumnSelection<M>) => Queryable.TerminatorSelection<M>): Queryable.Queryable<M>{
         return this.condition('AND', conditionFunction)
     }
-    or(conditionFunction:(table:Queryable.ColumnSelection) => Queryable.TerminatorSelection): Queryable.Queryable<T>{
+    or(conditionFunction:(table:Queryable.ColumnSelection<M>) => Queryable.TerminatorSelection<M>): Queryable.Queryable<M>{
         return this.condition('OR', conditionFunction)
     }
-    not(conditionFunction:(table:Queryable.ColumnSelection) => Queryable.TerminatorSelection): Queryable.Queryable<T>{
+    not(conditionFunction:(table:Queryable.ColumnSelection<M>) => Queryable.TerminatorSelection<M>): Queryable.Queryable<M>{
         return this.condition('NOT', conditionFunction)
     }
-    orderBy(orderByColumns:Array<[string, 'ASC'|'DESC']>): Queryable.Queryable<T>{
+    orderBy(orderByColumns:Array<[string, 'ASC'|'DESC']>): Queryable.Queryable<M>{
         this._queryParts.push(
             new Recipes.OrderBy(
                 orderByColumns.map(c=>this.model.columns.find(v=>v.property === c[0])), 
@@ -189,12 +189,16 @@ export class Query<T extends DTO.Model> extends Queryable.Queryable<T> implement
         )
         return this
     }
-    limit(limit:number): Queryable.Queryable<T>{
+    limit(limit:number): Queryable.Queryable<M>{
         this._queryParts.push(new Recipes.Limit(limit))
         return this
     }
+    page(pagesize:number, page:number): Queryable.Queryable<M>{
+        this._queryParts.push(new Recipes.Page(pagesize, page))
+        return this
+    }
 
-    private condition(logic:string, conditionFunction:(table:Queryable.ColumnSelection) => Queryable.TerminatorSelection): Queryable.Queryable<T> {
+    private condition(logic:string, conditionFunction:(table:Queryable.ColumnSelection<M>) => Queryable.TerminatorSelection<M>): Queryable.Queryable<M> {
         this._queryParts.push(new Recipes.Token(logic))
         this._queryParts.push(new Recipes.Token('('))
         let parts:Array<Queryable.QueryRecipe> = conditionFunction(

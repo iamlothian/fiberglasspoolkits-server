@@ -1,4 +1,4 @@
-import * as API from './api/controller'
+import * as API from './api'
 import * as ORM from './orm'
 import * as Drivers from './drivers'
 
