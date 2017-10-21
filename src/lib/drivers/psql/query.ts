@@ -111,12 +111,12 @@ export class Query<M extends DTO.Model> extends Queryable.Queryable<M> implement
      * 
      * @param modelType 
      */
-    static select<T extends DTO.Model>(modelType: { new (): T; }): Queryable.Queryable<T>  {
+    static select<T extends DTO.Model>(modelType: { new (): T; }, distinct:Array<keyof T> = []): Queryable.Queryable<T>  {
         let modelInst = new modelType(),
             queryParts = new Array<Queryable.QueryRecipe>()
 
         queryParts.push(
-            new Recipes.Select(modelInst)
+            new Recipes.Select(modelInst, distinct)
         )
         return new Query(modelInst, queryParts);
     }
@@ -185,7 +185,8 @@ export class Query<M extends DTO.Model> extends Queryable.Queryable<M> implement
         this._queryParts.push(
             new Recipes.OrderBy(
                 orderByColumns.map(c=>this.model.columns.find(v=>v.property === c[0])), 
-                orderByColumns.map(c=>c[1]))
+                orderByColumns.map(c=>c[1] || 'ASC')
+            ) 
         )
         return this
     }

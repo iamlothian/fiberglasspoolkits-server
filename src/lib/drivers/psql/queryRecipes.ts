@@ -1,7 +1,7 @@
 import {DTO, Queryable} from '../../orm'
 
 
-export class Operand implements Queryable.OperandRecipe {
+export class Operand implements Queryable.QueryRecipe {
     
     columns:Array<string> = new Array<string>()
     values:Array<string> = new Array<string>()
@@ -21,28 +21,28 @@ export class Operand implements Queryable.OperandRecipe {
     }
     
 }
-export class Equals extends Operand implements Queryable.EqualsRecipe {
+export class Equals extends Operand implements Queryable.QueryRecipe {
     constructor( public table:string, column:DTO.Column, value:any) { super(table, column, value, '=') }
 }
-export class NotEquals extends Operand implements Queryable.NotEqualsRecipe {
+export class NotEquals extends Operand implements Queryable.QueryRecipe {
     constructor( public table:string, column:DTO.Column, value:any) { super(table, column, value, '!=') }
 }
-export class GreaterThan extends Operand implements Queryable.GreaterThanRecipe {
+export class GreaterThan extends Operand implements Queryable.QueryRecipe {
     constructor( public table:string, column:DTO.Column, value:any) { super(table, column, value, '>') }
 }
-export class GreaterThanEqual extends Operand implements Queryable.GreaterThanEqualRecipe {
+export class GreaterThanEqual extends Operand implements Queryable.QueryRecipe {
     constructor( public table:string, column:DTO.Column, value:any) { super(table, column, value, '>=') }
 }
-export class LessThan extends Operand implements Queryable.LessThanRecipe {
+export class LessThan extends Operand implements Queryable.QueryRecipe {
     constructor( public table:string, column:DTO.Column, value:any) { super(table, column, value, '<') }
 }
-export class LessThanEqual extends Operand implements Queryable.LessThanEqualRecipe {
+export class LessThanEqual extends Operand implements Queryable.QueryRecipe {
     constructor( public table:string, column:DTO.Column, value:any) { super(table, column, value, '<=') }
 }
-export class In extends Operand implements Queryable.InRecipe {
+export class In extends Operand implements Queryable.QueryRecipe {
     constructor( public table:string, column:DTO.Column, values:Array<any>) { super(table, column, [values], 'IN') }
 }
-export class NotNull implements Queryable.NotNullRecipe {
+export class NotNull implements Queryable.QueryRecipe {
     
     columns:Array<string> = new Array<string>()
     values:Array<string> = new Array<string>()
@@ -59,7 +59,7 @@ export class NotNull implements Queryable.NotNullRecipe {
     }
     
 }
-export class IsNull implements Queryable.IsNullRecipe {
+export class IsNull implements Queryable.QueryRecipe {
     
     columns:Array<string> = new Array<string>()
     values:Array<string> = new Array<string>()
@@ -77,25 +77,33 @@ export class IsNull implements Queryable.IsNullRecipe {
     
 }
 
-export class Select implements Queryable.SelectRecipe {
+export class Select implements Queryable.QueryRecipe {
 
     columns:Array<string> = new Array<string>()
     values:Array<string> = new Array<string>()
 
     bake(valueCount:number):string {
-        return `SELECT ${this.columns.join(',')} FROM ${this.table}`
+        let distinct = this.distinct.length >= 1 ? `DISTINCT on (${this.distinct.join(',')})` : ''
+        return `SELECT ${distinct} ${this.columns.join(',')} FROM ${this.table}`
     }
 
     constructor(
         model:DTO.Model,
+        private distinct:Array<string>,
         public table:string = model.tableName, 
         columns:Array<DTO.Column> = model.columns
     ){
+        // map prop to db column name
+        this.distinct = this.distinct.map(
+            d=>model.columns.find(
+                c=>c.property === d
+            ).name
+        )
         this.columns = columns.map(v=>v.name)
     }
     
 }
-export class Count implements Queryable.CountRecipe {
+export class Count implements Queryable.QueryRecipe {
     
     columns:Array<string> = new Array<string>()
     values:Array<string> = new Array<string>()
@@ -113,7 +121,7 @@ export class Count implements Queryable.CountRecipe {
     }
     
 }
-export class Update implements Queryable.UpdateRecipe {
+export class Update implements Queryable.QueryRecipe {
     
     columns:Array<string> = new Array<string>()
     values:Array<string> = new Array<string>()
@@ -133,7 +141,7 @@ export class Update implements Queryable.UpdateRecipe {
     }
     
 }
-export class Insert implements Queryable.InsertRecipe {
+export class Insert implements Queryable.QueryRecipe {
     
     columns:Array<string> = new Array<string>()
     values:Array<string> = new Array<string>()
@@ -153,7 +161,7 @@ export class Insert implements Queryable.InsertRecipe {
     }
     
 }
-export class Delete implements Queryable.DeleteRecipe {
+export class Delete implements Queryable.QueryRecipe {
     
     columns:Array<string> = new Array<string>()
     values:Array<string> = new Array<string>()
@@ -169,7 +177,7 @@ export class Delete implements Queryable.DeleteRecipe {
     
 }
 
-export class OrderBy implements Queryable.OrderByRecipe {
+export class OrderBy implements Queryable.QueryRecipe {
     
     table:string = ""
     columns:Array<string> = new Array<string>()
@@ -187,7 +195,7 @@ export class OrderBy implements Queryable.OrderByRecipe {
     }
     
 }
-export class Limit implements Queryable.LimitRecipe {
+export class Limit implements Queryable.QueryRecipe {
     
     table:string = ""
     columns:Array<string> = new Array<string>()
@@ -204,7 +212,7 @@ export class Limit implements Queryable.LimitRecipe {
     }
     
 }
-export class Page implements Queryable.LimitRecipe {
+export class Page implements Queryable.QueryRecipe {
     
     table:string = ""
     columns:Array<string> = new Array<string>()
@@ -223,7 +231,7 @@ export class Page implements Queryable.LimitRecipe {
     
 }
 
-export class Token implements Queryable.TokenRecipe {
+export class Token implements Queryable.QueryRecipe {
     table:string = ""
     columns:Array<string> = new Array<string>()
     values:Array<string> = new Array<string>()
@@ -233,14 +241,14 @@ export class Token implements Queryable.TokenRecipe {
     }
     constructor(public token:string){}
 }
-export class And extends Token implements Queryable.AndRecipe {
+export class And extends Token implements Queryable.QueryRecipe {
     
     table:string = ""
     columns:Array<string> = new Array<string>()
     values:Array<string> = new Array<string>()
     constructor(public token:string = 'AND'){super(token)}
 }
-export class Or extends Token implements Queryable.OrRecipe {
+export class Or extends Token implements Queryable.QueryRecipe {
     
     table:string = ""
     columns:Array<string> = new Array<string>()

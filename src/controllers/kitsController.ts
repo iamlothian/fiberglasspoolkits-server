@@ -25,7 +25,7 @@ export class KitController extends API.ControllerBase {
 
             let kit:Kit = await Kit.create(Kit, req.body)
             res.status(200).send(
-                Kit.serialize(kit)
+                await Kit.serialize(kit)
             )
 
         } catch (error) {
@@ -38,10 +38,10 @@ export class KitController extends API.ControllerBase {
 
     protected async getMany(req: Request, res: Response){
         try {
-            let kits:Array<Kit> = await Kit.getAll(Kit)
-            res.status(200).send(
-                kits.map(k=> Kit.serialize(k))
-            )
+            let kits:Array<Kit> = await Kit.getAll(Kit),
+                serialized = await Promise.all(kits.map(k=> Kit.serialize(k)))
+
+            res.status(200).send(serialized)
 
         } catch (error) {
             console.error(error)
@@ -58,7 +58,7 @@ export class KitController extends API.ControllerBase {
         try {
             let kit:Kit = await Kit.getByEntityId(Kit, id, state)
             res.status(200).send(
-                Kit.serialize(kit)
+                await Kit.serialize(kit)
             )
 
         } catch (error) {
@@ -88,7 +88,7 @@ export class KitController extends API.ControllerBase {
             kit === undefined ? 
                 res.sendStatus(404) : 
                 res.status(200).send(
-                    Kit.serialize(kit)
+                    await Kit.serialize(kit)
                 )
 
         } catch (error) {
@@ -124,7 +124,7 @@ export class KitController extends API.ControllerBase {
             await Kit.updateReplace(kit)
 
             res.status(200).send(
-                Kit.serialize(kit)
+                await Kit.serialize(kit)
             )
 
         } catch (error) {

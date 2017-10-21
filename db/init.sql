@@ -1,7 +1,7 @@
 DROP TABLE kit;
 
 CREATE TABLE IF NOT EXISTS kit (
-    id                  serial      CONSTRAINT id_pk PRIMARY KEY,
+    id                  serial      CONSTRAINT kit_id_pk PRIMARY KEY,
     entity_id           uuid        NOT NULL,
     version             smallint  NOT NULL,
     created_at          timestamp   NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS kit (
 --     TABLESPACE pg_default;
 
 CREATE TABLE IF NOT EXISTS item (
-    id                  serial      CONSTRAINT id_pk PRIMARY KEY,
+    id                  serial      CONSTRAINT item_id_pk PRIMARY KEY,
     entity_id           uuid        NOT NULL,
     version             smallint  NOT NULL,
     created_at          timestamp   NOT NULL,
@@ -38,13 +38,13 @@ CREATE TABLE IF NOT EXISTS item (
     state               smallint    NOT NULL,
     title               varchar(60)     NOT NULL,
     description         varchar(255)    NOT NULL,
-    category            integer,
-    cost                mondey,
+    category_uuid       uuid,
+    cost                money,
     ignore_cost_in_kit  boolean   
 );
 
 CREATE TABLE IF NOT EXISTS item_category (
-    id                  serial      CONSTRAINT id_pk PRIMARY KEY,
+    id                  serial      CONSTRAINT item_category_id_pk PRIMARY KEY,
     entity_id           uuid        NOT NULL,
     version             smallint  NOT NULL,
     created_at          timestamp   NOT NULL,

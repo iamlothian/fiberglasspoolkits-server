@@ -1,10 +1,12 @@
 import "reflect-metadata"
 import * as Injector from 'typescript-injector-lite'
 import { Driver, SyncDriver } from './driver'
-import * as Sync from './modelSync'
+//import * as Sync from './modelSync'
+import {  } from "./query"
 
 const TableMetadataKey = Symbol("design:tableName")
 const columnMetadataKey = Symbol("design:column")
+const formatMetadataKey = Symbol("design:format")
 
 export interface DBColumn {
     /** The name of the column to be used in the Datastore, used in queries and table deserialization. DEFAULT: property in underscore case */
@@ -93,49 +95,50 @@ export abstract class Model {
      * @param tableColumn the serializedModel to deserialize to a Model instance
      */
     static deserializeTableRow<T extends Model>(type: { new(): T; }, tableColumn: object): T {
-        return Model.deserialize(type, tableColumn, "ROW")
-    }
-    /**
-     * Create a new instance using the provided constructor type, and map the provided viewModel properties to it where supported on the constructor
-     * @param type the constructor function to use for deserialization  
-     * @param viewModel the serializedModel to deserialize to a Model instance
-     */
-    static deserializeViewModel<T extends Model>(type: { new(): T; }, viewModel: object, skipRequiredCheck:boolean = false): T {
-        return Model.deserialize(type,viewModel, "REQ", skipRequiredCheck)
-    }
-
-    /**
-     * Create a new instance using the provided constructor type, and map the provided serializedModel properties to it where supported on the constructor
-     * @param type the constructor function to use for deserialization  
-     * @param serializedModel the serializedModel to deserialize to a Model instance
-     * @param mode the type of data to expect, 
-     * "ROW" for a serializedModel where table column names represent the model properties, 
-     * "REQ" for a serializedModel where model property names will be present
-     */
-    static deserialize<T extends Model>(type: { new(): T; }, serializedModel: object, mode:'ROW'|'REQ', skipRequiredCheck:boolean = false): T {
         let inst: T = new type(),
-            errors = new Array<string>()
+        errors = new Array<string>()
 
-        if (mode === "ROW" && serializedModel['id'] === undefined){
+        if (tableColumn['id'] === undefined){
             throw new Error("- deserialize expects tableColumn to contain the property [id]")
         }
 
         inst.columns.forEach(c => {
-            if (!skipRequiredCheck && c.isRequired && serializedModel[c.name] == undefined){
+
+            if (tableColumn[c.name] != undefined){
+                inst[c.property] = tableColumn[c.name]
+            }
+        })
+
+        if (errors.length>0){
+            throw new Error(errors.join('\n'))
+        }
+        
+
+        return inst
+    }
+    /**
+     * Create a new instance using the provided constructor type, and map the provided viewModel properties to it where supported on the constructor.
+     * The created instance will be a shallow entity and not contain joins or relationships, as this method is designed to validate a vew model for use with a datastore 
+     * @param type the constructor function to use for deserialization  
+     * @param viewModel the serializedModel to deserialize to a Model instance
+     */
+    static deserializeViewModel<T extends Model>(type: { new(): T; }, viewModel: object, skipRequiredCheck:boolean = false): T {
+       
+        let inst: T = new type(),
+            errors = new Array<string>()
+
+        inst.columns.forEach(c => {
+            if (!skipRequiredCheck && c.isRequired && viewModel[c.property] == undefined){
                 errors.push('- Required property ['+c.property+'] of model ['+inst.tableName+'] not present in request')
             }
-            if (mode === "ROW" && serializedModel[c.name] != undefined){
-                inst[c.property] = serializedModel[c.name]
+            if (c.isProtected && viewModel[c.property] != undefined){
+                viewModel[c.property] = undefined
+                errors.push('- Protected properties ['+c.property+'] of model ['+inst.tableName+'] can not be present in request')
             }
-            if (mode === "REQ") {
-                if (c.isProtected && serializedModel[c.property] != undefined){
-                    serializedModel[c.property] = undefined
-                    errors.push('- Protected properties ['+c.property+'] of model ['+inst.tableName+'] can not be present in request')
-                }
-                if (serializedModel[c.property] != undefined){
-                    inst[c.property] = serializedModel[c.property]
-                }
+            if (viewModel[c.property] != undefined){
+                inst[c.property] = viewModel[c.property]
             }
+            
         })
         
         if (errors.length>0){
@@ -165,41 +168,41 @@ export abstract class Model {
      * Take a model instance and return a POJO the represents it and complies with the column metadata and rules
      * @param model the model instance to deserialize
      */
-    static serialize<T extends Model>(model: T): object {
-        let viewModel = {}
-        model.columns
+    static async serialize<T extends Model>(model: T, depth:number = 1): Promise<object> {
+        let viewModel = model.columns
             .filter(c => !c.isPrivate)
-            .forEach(c => viewModel[c.property] = c.value )
-        return viewModel
+            .map(c => { 
+                let fmttr = getFormat(model,c.property)
+                c.value = !!fmttr ? fmttr(c.value) : c.value
+                return c
+            })
+            .reduce((o,c) => {o[c.property] = c.value; return o}, {})
+            
+        return await viewModel
     }
 
 }
 
 /**
- * Internal array of models
- */
-let models: Array<string> = new Array()
-
-/**
  * 
  * @param db 
  */
-export async function syncModels(syncDb:SyncDriver): Promise<Array<any>>{
+// export async function syncModels(syncDb:SyncDriver): Promise<Array<any>>{
 
-    console.log('======= Sync Models =======')
+//     console.log('======= Sync Models =======')
 
-    let modelList = new Array<Model>()
-    models.forEach(c=>{
-        let inst:Model = Injector.instantiate(c)
-        modelList.push(inst)
-    })
+//     let modelList = new Array<Model>()
+//     models.forEach(c=>{
+//         let inst:Model = Injector.instantiate(c)
+//         modelList.push(inst)
+//     })
 
-    let deltaList = await Sync.syncModelDeltas(modelList)
+//     let deltaList = await Sync.syncModelDeltas(modelList)
 
-    deltaList.map(d=>syncDb.modelDeltaToQuery(d))
+//     deltaList.map(d=>syncDb.modelDeltaToQuery(d))
 
-    return modelList
-}
+//     return modelList
+// }
 
 /**
  * Helper method for automatic table column name conventions
@@ -209,6 +212,19 @@ function toUnderscoreCase(input: string) {
     input = input ? input.trim().replace(/([A-Z])/g, g => '_' + g[0].toLowerCase()) : null
     input = input[0] === '_' ? input.slice(1) : input
     return input;
+}
+
+/**
+ * Internal array of models
+ */
+let models: Map<string, { new(): {} }> = new Map()
+
+/**
+ * 
+ * @param modelName 
+ */
+export function getModelConstructor(modelName:string): { new(): {} } {
+    return models.get(modelName)
 }
 
 /**
@@ -224,8 +240,11 @@ export function table(tableName?: string, key?: string) {
 
         Reflect.defineMetadata(TableMetadataKey, tableName, constructor)
 
-        models.push(key)
-        return Injector.factory(key)(constructor)
+        let ctrl = Injector.factory(key)(constructor)
+
+        models.set(key, ctrl)
+
+        return ctrl
     }
 }
 
@@ -269,20 +288,12 @@ export function getColumns(target: any): Array<Column> {
     return columns
 }
 
-export function manyToOne(joinColumn:string): any {
+export function format(formatterFn:(value:any) => string|number): any {
     return (target, propertyKey) => {
-
+        Reflect.defineMetadata(formatMetadataKey, formatterFn, target, propertyKey)
     }
 }
 
-export function oneToMany(): any {
-    return (target, propertyKey) => {
-        
-    }
-}
-
-export function manyToMany(): any {
-    return (target, propertyKey) => {
-        
-    }
+function getFormat(target:any, propertyKey:string): (value:any) => string|number {
+    return Reflect.getMetadata(formatMetadataKey, target, propertyKey)
 }

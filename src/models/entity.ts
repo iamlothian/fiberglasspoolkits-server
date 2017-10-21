@@ -5,14 +5,19 @@ import * as API from "../lib/api"
 import { DTO, Datastore, Queryable } from "../lib/orm"
 import { Query, QueryColumn } from '../lib/drivers/psql'
 
+const relationMetadataKey = Symbol("design:relationship")
+
 export enum ENTITY_STATE { HIDDEN, DRAFT, PUBLIC }
-
-interface searchQuery<M extends DTO.Model> {
-
-    pageSize:number
-    page:number
-
+function normalizeEntityState(state:string|number): ENTITY_STATE {
+    return typeof(ENTITY_STATE[state]) === 'number' ? ENTITY_STATE[state] : ENTITY_STATE[ENTITY_STATE[state]]
 }
+
+// interface searchQuery<M extends DTO.Model> {
+
+//     pageSize:number
+//     page:number
+
+// }
 
 /**
  * 
@@ -37,7 +42,8 @@ export abstract class Entity extends DTO.Model {
     @DTO.column({dbType:'varchar(60)', maxLength:60, isPrivate:true})
     updatedBy: string = "system"
 
-    @DTO.column({dbType:'smallint', isPrivate:true})
+    @DTO.column({dbType:'smallint', isProtected:true})
+    @DTO.format(v=>ENTITY_STATE[v])
     state: ENTITY_STATE = ENTITY_STATE.DRAFT
 
     @DTO.column({dbType:'timestamp', isPrivate:true})
@@ -75,7 +81,7 @@ export abstract class Entity extends DTO.Model {
             db:Datastore.Driver = Injector.instantiate('DB'),
             result = await db.execute(query)
 
-        return await DTO.Model.deserializeTableRow(entityType, result.rows[0])
+        return await Entity.deserializeTableRow(entityType, result.rows[0])
     }
 
     /**
@@ -85,6 +91,7 @@ export abstract class Entity extends DTO.Model {
      * @param state the state of the active version to update
      */
     static async updateVersion<E extends Entity>(entityType: { new (): E; }, json:object, state:ENTITY_STATE=ENTITY_STATE.PUBLIC): Promise<E> {
+        state = normalizeEntityState(state)
         let newEntity
 
         try {
@@ -118,7 +125,7 @@ export abstract class Entity extends DTO.Model {
         currentVersion.deactivateAt = newEntity.activateAt
         await Entity.updateReplace(currentVersion)
 
-        return await DTO.Model.deserializeTableRow(entityType, result.rows[0])
+        return await Entity.deserializeTableRow(entityType, result.rows[0])
     }
 
     /**
@@ -137,16 +144,19 @@ export abstract class Entity extends DTO.Model {
     }
     
     /**
-     * get a rows of a entity from the Datastore, allows a custom query condition to be supplied
+     * get all rows and versions of an entity type from the Datastore, allows custom query conditions to be supplied
      * @param entityType the constructor of the entity to use for deserialize
+     * @param state the minimum state of the entities to return
+     * @param and any extra condition to apply to the selected set
      */
-    static async getAll<E extends Entity>(entityType: { new (): E; }, where:(query:Queryable.Queryable<E>) => Queryable.Queryable<E> = q=>q) : Promise<Array<E>> {
-        let query = where(Query.select(entityType)),
-        db:Datastore.Driver = Injector.instantiate('DB'),
+    static async getAll<E extends Entity>(entityType: { new (): E; }, state:ENTITY_STATE=ENTITY_STATE.PUBLIC, and:(query:Queryable.Queryable<E>) => Queryable.Queryable<E> = q=>q) : Promise<Array<E>> {
+        state = normalizeEntityState(state)
+        let query = and(Query.select(entityType).where(e=>e.column('state').gte(state))),
+            db:Datastore.Driver = Injector.instantiate('DB'),
 
         result = await db.execute(query)
         
-        return await result.rows.map(row=>DTO.Model.deserializeTableRow(entityType, row))
+        return await result.rows.map(row=>Entity.deserializeTableRow(entityType, row))
     }
 
     /**
@@ -156,12 +166,12 @@ export abstract class Entity extends DTO.Model {
      * @param state the state of the active version required
      */
     static async getByEntityId<E extends Entity>(entityType: { new (): E; }, entityId:string, state:ENTITY_STATE=ENTITY_STATE.PUBLIC): Promise<E> {
-        
+        state = normalizeEntityState(state)
         let now = new Date().toUTCString(),
 
             query = Query.select(entityType)
                     .where(e=>e.column('entityId').equals(entityId))
-                    .and(e=>e.column('state').equals(state))
+                    .and(e=>e.column('state').gte(state))
                     .and(e=>e.column('activateAt').lte(now))
                     .and(
                         e=>e.column('deactivateAt').isNull()
@@ -174,9 +184,35 @@ export abstract class Entity extends DTO.Model {
             result = await db.execute(query)
 
         return await result.rowCount !== 0 ? 
-            DTO.Model.deserializeTableRow(entityType, result.rows[0]) :
+            Entity.deserializeTableRow(entityType, result.rows[0]) :
             undefined
     }
+
+    /**
+     * get all active entities from the Datastore, allows custom query conditions to be supplied
+     * @param entityType the constructor of the entity to use for deserialize
+     * @param state the minimum state of the entities to return
+     * @param and any extra condition to apply to the selected set
+     */
+    static async getAllActive<E extends Entity>(entityType: { new (): E; }, state:ENTITY_STATE=ENTITY_STATE.PUBLIC, and:(query:Queryable.Queryable<E>) => Queryable.Queryable<E> = q=>q) : Promise<Array<E>> {
+        state = normalizeEntityState(state)
+        let now = new Date().toUTCString(),
+            query = and(
+                Query.select(entityType, ['entityId'])
+                    .where(e=>e.column('state').gte(state))
+                    .and(e=>e.column('activateAt').lte(now))
+                    .and(
+                        e=>e.column('deactivateAt').isNull()
+                        .or(e=>e.column('deactivateAt').gte(now))
+                    )
+            ).orderBy([['entityId'],['activateAt','DESC']]),
+        db:Datastore.Driver = Injector.instantiate('DB'),
+
+        result = await db.execute(query)
+        
+        return await result.rows.map(row=>Entity.deserializeTableRow(entityType, row))
+    }
+
     /**
      * get a specific entity by its row ID from the Datastore
      * @param entityType the constructor of the entity to use for deserialize
@@ -191,7 +227,7 @@ export abstract class Entity extends DTO.Model {
             result = await db.execute(query)
             
         return await result.rowCount !== 0 ? 
-            DTO.Model.deserializeTableRow(entityType, result.rows[0]) :
+            Entity.deserializeTableRow(entityType, result.rows[0]) :
             undefined
     }
     /**
@@ -207,6 +243,153 @@ export abstract class Entity extends DTO.Model {
         db:Datastore.Driver = Injector.instantiate('DB'),
         result = await db.execute(query)
         
-        return await result.rows.map(row=>DTO.Model.deserializeTableRow(entityType, row))
+        return await result.rows.map(row=>Entity.deserializeTableRow(entityType, row))
     }
+
+    /**
+     * 
+     * @param type 
+     * @param tableColumn 
+     */
+    static deserializeTableRow<T extends DTO.Model>(type: { new(): T; }, tableColumn: object): T {
+        let inst:T = super.deserializeTableRow(type, tableColumn)
+
+        getRelationships(inst).forEach(rel=>{
+
+            let target = <{ new(): Entity }>rel.mappedByCtor
+
+            switch(rel.type){
+
+                case "oneToMany":
+                    inst[rel.property] = new LazyLoad(async loader=>{
+                        return await Entity.getAllActive(target, inst['state'], 
+                            q=>q.and(c=>c.column(rel.joinColumn).equals(inst[rel.joinColumn]))
+                        )
+                    })
+                    break
+
+                case "manyToOne":
+                    inst[rel.property] = new LazyLoad(async loader=>{
+                        return await Entity.getByEntityId(target, inst[rel.joinColumn])
+                    })
+                    break
+
+                case "manyToMany":
+                    break
+            }
+
+        })
+
+        return inst
+    }
+
+        /**
+     * Take a model instance and return a POJO the represents it and complies with the column metadata and rules
+     * @param model the model instance to deserialize
+     */
+    static async serialize<T extends DTO.Model>(model: T, depth:number = 1): Promise<object> {
+        let viewModel = await super.serialize(model, depth)
+
+        // load lazy loaded values
+        let lazyValues = await Promise.all(
+            getRelationships(model).map(async r => {
+                return {
+                    property: r.property,
+                    value: await (<LazyLoad<any>>model[r.property]).load()
+                }
+            })
+        )
+
+        // copy values to view model
+        lazyValues.forEach(l => {
+            viewModel[l.property] = l.value
+        })
+
+        return await viewModel
+    }
+}
+
+/**
+ * 
+ */
+export interface ModelRelationship<M extends Entity> {
+    property?:string
+    joinColumn?:keyof M
+    mappedBy?:string
+    mappedByCtor?: { new():{} }
+    type: "oneToMany"|"manyToOne"|"manyToMany"
+}
+
+/**
+ * 
+ */
+export class LazyLoad<T> {
+    constructor(
+        private loader:(...args:Array<any>) => Promise<T>,
+        private args: Array<any> = []
+    ){}
+    async load(): Promise<T> {
+        return await this.loader.apply(null, this.args)
+    }
+}
+
+/**
+ * Item
+ * @param joinColumn 
+ */
+export function manyToOne<M extends Entity>(joinColumn:keyof M, mappedBy: string): any {
+    return (target, propertyKey) => {
+        let relationship:ModelRelationship<M> = Reflect.getMetadata(relationMetadataKey, target, propertyKey) || {},
+            type = Reflect.getMetadata('desigm:type', target, propertyKey)
+        
+        relationship.type = "manyToOne"
+        relationship.property = propertyKey
+        relationship.joinColumn = joinColumn
+        relationship.mappedBy = mappedBy
+
+        Reflect.defineMetadata(relationMetadataKey, relationship, target, propertyKey)
+    }
+}
+
+/**
+ * Array<Item>
+ * @param mappedBy 
+ */
+export function oneToMany<M extends Entity>(mappedBy: string, joinColumn:keyof M): any {
+    return (target, propertyKey) => {
+        
+        let relationship:ModelRelationship<M> = Reflect.getMetadata(relationMetadataKey, target, propertyKey) || {}
+        
+        relationship.type = "oneToMany"
+        relationship.property = propertyKey
+        relationship.joinColumn = joinColumn
+        relationship.mappedBy = mappedBy
+
+        Reflect.defineMetadata(relationMetadataKey, relationship, target, propertyKey)
+    }
+}
+
+export function manyToMany(): any {
+    return (target, propertyKey) => {
+        
+    }
+}
+
+/**
+ * get the columns metadata from a model instance
+ * @param target 
+ */
+export function getRelationships<M extends Entity>(target: any): Array<ModelRelationship<M>> {
+    let relationships = Array<ModelRelationship<M>>(), prototype = target
+    while (prototype !== null) {
+        Object.getOwnPropertyNames(prototype).forEach(c => {
+            let relationship:ModelRelationship<M> = Reflect.getMetadata(relationMetadataKey, prototype, c)
+            if (relationship !== undefined) {
+                relationship.mappedByCtor = DTO.getModelConstructor(relationship.mappedBy)
+                relationships.push(relationship)
+            }
+        })
+        prototype = Object.getPrototypeOf(prototype)
+    }
+    return relationships
 }

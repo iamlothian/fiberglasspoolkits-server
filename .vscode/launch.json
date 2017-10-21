@@ -9,7 +9,7 @@
                 "DEBUG":"typescript-injector-light"
             },
             "envFile": "${workspaceRoot}/.env",
-            "program": "${workspaceRoot}/dist/index",
+            "program": "${workspaceRoot}/dist/lib/query/test",
             "sourceMaps": true,
             "outFiles": [
                 "${workspaceRoot}/out/**/*.js"

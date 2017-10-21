@@ -7,9 +7,7 @@ import { ItemCategory } from "./itemCategory"
 @table()
 export class Kit extends Entity {
 
-    // @column({dbType:'varchar', maxLength:60})
-    // food:string = 'bar'
-
+    //@column({dbType:'', mappedBy:Item})
     categories:Array<ItemCategory>
 
     items:Array<Item>

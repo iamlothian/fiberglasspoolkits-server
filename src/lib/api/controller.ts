@@ -34,7 +34,7 @@ export function bootstrap(appServiceKey:string = 'App'):void{
  */
 export abstract class ControllerBase {
     
-    protected router:Router = Router()
+    protected router:Router = Router({mergeParams:true})
     protected path:string
     protected pathRef:string
 

@@ -25,7 +25,7 @@ export class ItemCategoryController extends API.ControllerBase {
 
             let category:ItemCategory = await ItemCategory.create(ItemCategory, req.body)
             res.status(200).send(
-                ItemCategory.serialize(category)
+                await ItemCategory.serialize(category)
             )
 
         } catch (error) {
@@ -37,11 +37,13 @@ export class ItemCategoryController extends API.ControllerBase {
     }
 
     protected async getMany(req: Request, res: Response){
+        let { state } =  req.query
+
         try {
-            let kits:Array<ItemCategory> = await ItemCategory.getAll(ItemCategory)
-            res.status(200).send(
-                kits.map(k=> ItemCategory.serialize(k))
-            )
+            let itemCategories:Array<ItemCategory> = await ItemCategory.getAll(ItemCategory, state),
+                serialized = await Promise.all(itemCategories.map(k=>ItemCategory.serialize(k)))
+
+            res.status(200).send(serialized)
 
         } catch (error) {
             console.error(error)
@@ -57,8 +59,13 @@ export class ItemCategoryController extends API.ControllerBase {
 
         try {
             let category:ItemCategory = await ItemCategory.getByEntityId(ItemCategory, id, state)
+
+            if (category === undefined){
+                throw new API.NotFound()
+            }
+
             res.status(200).send(
-                ItemCategory.serialize(category)
+                await ItemCategory.serialize(category)
             )
 
         } catch (error) {
@@ -88,7 +95,7 @@ export class ItemCategoryController extends API.ControllerBase {
             category === undefined ? 
                 res.sendStatus(404) : 
                 res.status(200).send(
-                    ItemCategory.serialize(category)
+                    await ItemCategory.serialize(category)
                 )
 
         } catch (error) {
@@ -124,7 +131,7 @@ export class ItemCategoryController extends API.ControllerBase {
             await ItemCategory.updateReplace(category)
 
             res.status(200).send(
-                ItemCategory.serialize(category)
+                await ItemCategory.serialize(category)
             )
 
         } catch (error) {
@@ -139,9 +146,9 @@ export class ItemCategoryController extends API.ControllerBase {
 
         // let query = Query.delete(ItemCategory).where(category => category.column('id').equals(id))
         
-        // let kits:Array<ItemCategory> = await this.db.execute(ItemCategory, query);
+        // let itemCategories:Array<ItemCategory> = await this.db.execute(ItemCategory, query);
 
-        // res.status(204).send(kits)
+        // res.status(204).send(itemCategories)
     }
 
 }
