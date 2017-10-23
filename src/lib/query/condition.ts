@@ -16,17 +16,48 @@ export enum OPERAND {
     NOT_NULL,
     IS_NULL
 }
-export type ConditionOperand = Pick<Condition, 'notNull'|'isNull'|'equals'|'notEquals'|'gt'|'gte'|'lt'|'lte'|'in'|'notIn'|'between'>
-export type ConditionExtension = Pick<Condition, 'and'|'or'|'andNot'|'orNot'>
-export type ConditionColumn = Readonly<Pick<Condition, 'column'|'operand'|'value'|'ands'|'ors'|'isNot'>>
+
+export interface ConditionOperand {
+    notNull(): ConditionExtension
+    isNull(): ConditionExtension
+    equals(value:any): ConditionExtension
+    notEquals(value:any): ConditionExtension 
+    gt(value:any): ConditionExtension 
+    gte(value:any): ConditionExtension
+    lt(value:any): ConditionExtension
+    lte(value:any): ConditionExtension
+    in(values:Array<any>): ConditionExtension
+    notIn(values:Array<any>): ConditionExtension 
+    between(greaterThan:number, lessThan:number): ConditionExtension
+}
+
+export interface ConditionExtension {
+    and(condition:ConditionExtension): ConditionExtension
+    or(condition:ConditionExtension): ConditionExtension
+    andNot(condition:ConditionExtension): ConditionExtension
+    orNot(condition:ConditionExtension): ConditionExtension
+}
+
+export interface ConditionColumn {
+    model:string
+    column:string
+    operand:OPERAND
+    value:any
+    ands: Array<Condition>
+    ors: Array<Condition>
+    isNot: boolean
+}
+
+export type RoConditionColumn = Readonly<ConditionColumn>
 
 /**
  * 
  */
-export class Condition {
+export class Condition implements ConditionOperand, ConditionExtension, ConditionColumn {
 
     constructor(
-        public column:Column,
+        public model:string,
+        public column:string,
         public operand:OPERAND = undefined,
         public value:any = undefined,
         public ands: Array<Condition> = [],

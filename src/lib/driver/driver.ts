@@ -1,6 +1,7 @@
-import { Model, Column } from './model'
-import { Queryable } from './query'
-import { ModelDelta } from './modelSync'
+import { Model, Column } from '../model'
+import { Queryable } from '../query'
+
+export type QueryResult = {}
 
 /**
  * a generic class which can run queries on a database
@@ -18,11 +19,5 @@ export interface Driver {
      * @see Queryable
      */
     execute<T extends Model>(query:Queryable<T>) : Promise<any>
-
-}
-
-export interface SyncDriver {
-
-    modelDeltaToQuery(modelDelta: ModelDelta): any
 
 }

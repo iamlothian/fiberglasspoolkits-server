@@ -1,5 +1,7 @@
 import { Pool, Client, QueryResult }  from 'pg'
-import { Datastore, Queryable, DTO, Sync } from '../../orm'
+import * as Datastore from '../driver'
+import { Queryable } from '../../query'
+import { Model } from '../../model'
 
 
 
@@ -49,18 +51,11 @@ export class Driver implements Datastore.Driver {
      * @param type 
      * @param query 
      */
-    async execute<T extends DTO.Model>(query:Queryable.Queryable<T>) : Promise<QueryResult> {
+    async execute<T extends Model>(query:Queryable<T>) : Promise<any> {
         let queryText = "",
             values = new Array<any>()
 
-        query.getQueryStack().forEach(v => {
-            let vlength = values.length
-            queryText += ' '+v.bake(vlength)
-            if (v.values.length > 0){
-                values = values.concat(v.values)
-            }
-            
-        })
+        
 
         return await this.query(queryText, values)
     }
@@ -70,37 +65,4 @@ export class Driver implements Datastore.Driver {
         console.log(this.name+" connection ended")
     }
 
-}
-
-
-export class SyncDriver implements Datastore.SyncDriver {
-    
-    constructor(private db:Driver){}
-
-    modelDeltaToQuery(modelDelta: Sync.ModelDelta): string {
-        
-        let script:string
-        if (modelDelta.hasDelta){
-
-            if (modelDelta.version === 1){   
-                script = `CREATE TABLE IF NOT EXISTS ${modelDelta.table} ()\n`
-            }
-
-            script = ''+
-                `CREATE TABLE IF NOT EXISTS ${modelDelta.table} (\n`+
-                    `${modelDelta.modified.map(c=>{
-                        let column = [c.name, c.dbType + (c.maxLength ? '('+c.maxLength+')' : '')]
-                            
-                        !c.dbNotNull && column.push('NOT NUL')
-                        c.dbIsPrimaryKey && column.push('CONSTRAINT '+c.name+'_pk PRIMARY KEY')
-
-                        return '\t'+column.join('\t')
-                    }).join(',\n')}`+
-                '\n);'
-        }
-            
-        return script
-
-    }
-    
 }
